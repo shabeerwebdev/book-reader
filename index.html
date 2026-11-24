@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="paper" data-font="serif" data-size="md">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Minimal Vertical Book Reader</title>
+  
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="theme-color" content="#FAF6EE" />
+  
+  <style>
+    /* TYPOGRAPHIC RESET & EDITORIAL VARIABLES */
+    :root {
+      --font-serif: -apple-system-ui-serif, "Charter", "Bitstream Charter", "Georgia", "Cambria", serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --content-max-width: 620px;
+    }
+
+    /* THEME 1: Warm Paper (Calibrated for non-glare, day/travel reading) */
+    html[data-theme="paper"] {
+      --bg: #FAF6EE;
+      --bg-surface: #F3EEDB;
+      --text-main: #2C2B29;
+      --text-muted: #736E65;
+      --border: #E5DFC9;
+      --accent: #9E5A22;
+      --accent-soft: rgba(158, 90, 34, 0.12);
+      --card-bg: #F4EFE2;
+      --callout-bg: #F2ECE0;
+      --callout-border: #DCD4BF;
+      --highlight-color: rgba(230, 180, 50, 0.35);
+      --hud-shadow: 0 4px 20px rgba(70, 50, 20, 0.08);
+    }
+
+    /* THEME 2: Editorial White */
+    html[data-theme="white"] {
+      --bg: #FFFFFF;
+      --bg-surface: #F5F5F7;
+      --text-main: #242426;
+      --text-muted: #86868B;
+      --border: #E5E5EA;
+      --accent: #0071E3;
+      --accent-soft: rgba(0, 113, 227, 0.10);
+      --card-bg: #F8F8FA;
+      --callout-bg: #F5F5F7;
+      --callout-border: #D1D1D6;
+      --highlight-color: rgba(255, 230, 0, 0.35);
+      --hud-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    /* THEME 3: Slate Night */
+    html[data-theme="slate"] {
+      --bg: #1C1C1E;
+      --bg-surface: #2C2C2E;
+      --text-main: #F0F0F5;
+      --text-muted: #98989D;
+      --border: #38383A;
+      --accent: #0A84FF;
+      --accent-soft: rgba(10, 132, 255, 0.15);
+      --card-bg: #242426;
+      --callout-bg: #25282E;
+      --callout-border: #3A404D;
+      --highlight-color: rgba(255, 214, 10, 0.35);
+      --hud-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    /* THEME 4: OLED Pure Black (Maximum battery saving on travel) */
+    html[data-theme="black"] {
+      --bg: #000000;
+      --bg-surface: #121212;
+      --text-main: #DCDCE0;
+      --text-muted: #8E8E93;
+      --border: #222224;
+      --accent: #5AC8FA;
+      --accent-soft: rgba(90, 200, 250, 0.12);
+      --card-bg: #121212;
+      --callout-bg: #14161A;
+      --callout-border: #242A33;
+      --highlight-color: rgba(255, 214, 10, 0.35);
+      --hud-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    }
+
+    /* SIZES with proportional line-heights */
+    html[data-size="sm"] { --font-base: 16px; --line-height: 1.72; }
+    html[data-size="md"] { --font-base: 18px; --line-height: 1.8; }
+    html[data-size="lg"] { --font-base: 21px; --line-height: 1.85; }
+    html[data-size="xl"] { --font-base: 24px; --line-height: 1.9; }
+
+    html[data-font="serif"] body { font-family: var(--font-serif); }
+    html[data-font="sans"] body { font-family: var(--font-sans); }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-size: var(--font-base);
+      line-height: var(--line-height);
+      letter-spacing: -0.005em;
+      transition: background-color 0.25s ease, color 0.25s ease;
+      min-height: 100vh;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* READING PROGRESS BAR */
+    #progress-bar-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2.5px;
+      background: transparent;
+      z-index: 100;
+    }
+    #progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 0.08s linear;
+    }
+
+    /* MINIMAL TOP BAR */
+    .hud-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: max(10px, env(safe-area-inset-top)) 18px 10px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 90;
+      box-shadow: var(--hud-shadow);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .hud-header.hidden {
+      transform: translateY(-100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .hud-title-wrap {
+      display: flex;
+      flex-direction: column;
+      max-width: 78%;
+      cursor: pointer;
+    }
+    .hud-book-name {
+      font-family: var(--font-sans);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--accent);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .hud-chapter-name {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hud-progress-pill {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    /* MINIMAL BOTTOM HUD (4 CLEAN BALANCED BUTTONS) */
+    .hud-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 10px 14px max(14px, env(safe-area-inset-bottom)) 14px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 90;
+      box-shadow: var(--hud-shadow);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .hud-footer.hidden {
+      transform: translateY(100%);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .nav-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      padding: 6px 10px;
+      font-size: 12.5px;
+      font-family: var(--font-sans);
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 8px;
+      transition: background 0.15s ease;
+    }
+    .nav-btn:active {
+      background: var(--bg-surface);
+    }
+
+    /* DOCKED BOTTOM SELECTION BAR (Fixes mobile native menu collision) */
+    #selection-bar {
+      position: fixed;
+      bottom: calc(56px + max(12px, env(safe-area-inset-bottom)));
+      left: 14px;
+      right: 14px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 9px 14px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 95;
+      animation: slideUpBar 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes slideUpBar {
+      from { transform: translateY(15px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    #selection-bar.active {
+      display: flex;
+    }
+    .sel-snippet {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      max-width: 45%;
+      font-style: italic;
+    }
+    .sel-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sel-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .sel-btn:active {
+      background: var(--border);
+    }
+    .sel-btn-primary {
+      background: var(--accent);
+      color: #FFFFFF;
+      border-color: var(--accent);
+    }
+
+    /* EDITORIAL READING CANVAS */
+    .reader-container {
+      max-width: var(--content-max-width);
+      margin: 0 auto;
+      padding: calc(64px + env(safe-area-inset-top)) 20px calc(80px + env(safe-area-inset-bottom)) 20px;
+    }
+
+    .chapter-header {
+      margin: 32px 0 36px 0;
+      padding-bottom: 22px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+    .part-badge {
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .chapter-title {
+      font-size: 1.85em;
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--text-main);
+      margin-bottom: 10px;
+    }
+    .chapter-meta {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* EDITORIAL TYPOGRAPHY - NO FULL JUSTIFY ON MOBILE */
+    .book-p {
+      margin-bottom: 1.4em;
+      text-align: left;
+      hyphens: auto;
+      -webkit-hyphens: auto;
+      word-break: break-word;
+    }
+
+    .section-heading {
+      font-size: 1.35em;
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--text-main);
+      margin: 44px 0 16px 0;
+      padding-top: 10px;
+    }
+
+    .book-list {
+      margin: 0 0 1.5em 1.25em;
+      padding-left: 0.5em;
+    }
+    .book-li {
+      margin-bottom: 0.75em;
+      line-height: 1.6;
+    }
+
+    .book-quote {
+      margin: 1.8em 0;
+      padding: 10px 18px;
+      border-left: 3px solid var(--accent);
+      background: var(--callout-bg);
+      border-radius: 0 8px 8px 0;
+      font-style: italic;
+    }
+
+    /* IMAGES & DIAGRAMS */
+    .book-figure {
+      margin: 28px 0;
+      text-align: center;
+    }
+    .figure-img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      background: #FFFFFF;
+      padding: 6px;
+      border: 1px solid var(--border);
+    }
+    .figure-caption {
+      margin-top: 8px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* IN-CHAPTER SECTION JUMP PILLS */
+    .section-nav-shelf {
+      margin: 18px 0 32px 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+    .sec-pill {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 11px;
+      border-radius: 14px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+    .sec-pill:active {
+      background: var(--border);
+    }
+
+    /* NEXT CHAPTER CARD */
+    .next-chapter-card {
+      margin: 50px 0 30px 0;
+      padding: 24px;
+      border-radius: 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      text-align: center;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .next-chapter-card:active {
+      transform: scale(0.99);
+      border-color: var(--accent);
+    }
+    .next-label {
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .next-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* HIGHLIGHTS IN TEXT */
+    mark.user-hl {
+      background-color: var(--highlight-color);
+      color: inherit;
+      border-radius: 3px;
+      padding: 1px 2px;
+    }
+
+    /* BOTTOM SHEETS / DRAWERS */
+    .sheet-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 150;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .sheet-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sheet-drawer {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      max-height: 85vh;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      border-radius: 20px 20px 0 0;
+      z-index: 160;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
+      padding: 12px 20px max(24px, env(safe-area-inset-bottom)) 20px;
+    }
+    .sheet-drawer.active {
+      transform: translateY(0);
+    }
+    .drawer-handle {
+      width: 38px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      margin: 0 auto 14px auto;
+    }
+    .drawer-scrollable {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      flex: 1;
+      padding-bottom: 15px;
+    }
+
+    /* LIBRARY CARDS */
+    .library-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 4px 0 16px 0;
+    }
+    .book-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      user-select: none;
+    }
+    .book-card:active {
+      transform: scale(0.985);
+    }
+    .book-card.current {
+      border-color: var(--accent);
+      background: var(--callout-bg);
+    }
+    .book-card-cover {
+      width: 52px;
+      height: 74px;
+      object-fit: cover;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      flex-shrink: 0;
+      background: var(--border);
+    }
+    .book-card-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .book-card-title {
+      font-family: var(--font-sans);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 3px;
+    }
+    .book-card-author {
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .book-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-sans);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .book-card-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 10.5px;
+      font-weight: 600;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    /* CHAPTER DRAWER CARDS */
+    .part-group-title {
+      font-family: var(--font-sans);
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin: 18px 0 8px 4px;
+    }
+    .ch-nav-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .ch-nav-card:active {
+      background: var(--bg-surface);
+    }
+    .ch-nav-card.current {
+      border-color: var(--accent);
+      background: var(--callout-bg);
+    }
+    .ch-nav-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .ch-nav-meta {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-left: 10px;
+      white-space: nowrap;
+    }
+
+    /* GLOSSARY DRAWER */
+    .glossary-search-input {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--text-main);
+      font-size: 14px;
+      font-family: var(--font-sans);
+      margin-bottom: 12px;
+      outline: none;
+    }
+    .glossary-card {
+      padding: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 8px;
+    }
+    .glossary-term {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .glossary-book-tag {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: var(--bg-surface);
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .glossary-def {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text-main);
+    }
+
+    /* APPEARANCE DRAWER */
+    .pref-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .pref-label {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      width: 100%;
+    }
+    .theme-opt-btn {
+      padding: 10px 6px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-family: var(--font-sans);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+    .theme-opt-btn[data-theme="paper"] { background: #FAF6EE; color: #2C2B29; }
+    .theme-opt-btn[data-theme="white"] { background: #FFFFFF; color: #242426; }
+    .theme-opt-btn[data-theme="slate"] { background: #1C1C1E; color: #F0F0F5; }
+    .theme-opt-btn[data-theme="black"] { background: #000000; color: #DCDCE0; }
+    .theme-opt-btn.active {
+      outline: 2px solid var(--accent);
+      border-color: var(--accent);
+    }
+    .btn-toggle-group {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .toggle-opt {
+      background: var(--bg);
+      border: none;
+      border-right: 1px solid var(--border);
+      padding: 8px 16px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+    .toggle-opt:last-child {
+      border-right: none;
+    }
+    .toggle-opt.active {
+      background: var(--accent);
+      color: #FFFFFF;
+    }
+
+    .size-stepper {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .size-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      font-size: 18px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .size-val {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      min-width: 44px;
+      text-align: center;
+    }
+
+    /* AI / DICTIONARY MODAL */
+    #ai-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      width: 90%;
+      max-width: 440px;
+      max-height: 80vh;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      font-family: var(--font-sans);
+    }
+    #ai-modal.active {
+      display: flex;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .ai-modal-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .ai-modal-word {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .ai-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+    .ai-modal-body {
+      padding: 16px 18px;
+      overflow-y: auto;
+      max-height: 65vh;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* TOAST */
+    #toast {
+      position: fixed;
+      bottom: calc(75px + env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--text-main);
+      color: var(--bg);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-family: var(--font-sans);
+      font-size: 12.5px;
+      font-weight: 600;
+      pointer-events: none;
+      opacity: 0;
+      transition: all 0.22s ease;
+      z-index: 300;
+      backdrop-filter: blur(8px);
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Progress Bar -->
+  <div id="progress-bar-container">
+    <div id="progress-bar"></div>
+  </div>
+
+  <!-- Ambient Top HUD -->
+  <nav class="hud-header" id="hud-header">
+    <div class="hud-title-wrap" id="hud-title-trigger" title="Tap to switch book">
+      <span class="hud-book-name" id="hud-book-name">Thinking, Fast and Slow <span style="font-size:10px; opacity:0.75;">▾</span></span>
+      <span class="hud-chapter-name" id="hud-chapter-name">Loading...</span>
+    </div>
+    <div class="hud-progress-pill" id="progress-badge">0%</div>
+  </nav>
+
+  <!-- Main Reader Canvas -->
+  <main class="reader-container" id="reader-content">
+    <p style="text-align: center; color: var(--text-muted); padding: 50px 0;">Loading book...</p>
+  </main>
+
+  <!-- DOCKED BOTTOM SELECTION BAR -->
+  <div id="selection-bar">
+    <span class="sel-snippet" id="sel-snippet">"selected text"</span>
+    <div class="sel-actions">
+      <button class="sel-btn sel-btn-primary" id="btn-explain-sel">📖 Explain</button>
+      <button class="sel-btn" id="btn-highlight-sel">🟡 Highlight</button>
+      <button class="sel-btn" id="btn-dismiss-sel" style="padding:6px 8px;">✕</button>
+    </div>
+  </div>
+
+  <!-- MINIMAL BOTTOM HUD (4 CLEAN BUTTONS) -->
+  <nav class="hud-footer" id="hud-footer">
+    <button class="nav-btn" id="btn-open-library">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+      Books
+    </button>
+    <button class="nav-btn" id="btn-open-chapters">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+      Chapters
+    </button>
+    <button class="nav-btn" id="btn-open-glossary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
+      Glossary
+    </button>
+    <button class="nav-btn" id="btn-open-appearance">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M9 4v3h5v12h3V7h5V4H9zm-6 8h3v7h3v-7h3v-3H3v3z"/></svg>
+      Settings
+    </button>
+  </nav>
+
+  <!-- MODAL DRAWER OVERLAY -->
+  <div class="sheet-overlay" id="sheet-overlay"></div>
+
+  <!-- DRAWER: LIBRARY (MULTI-BOOK SWITCHER) -->
+  <div class="sheet-drawer" id="drawer-library">
+    <div class="drawer-handle"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <div>
+        <h3 style="font-family:var(--font-sans); font-size:16.5px; font-weight:700;">My Library</h3>
+        <p style="font-family:var(--font-sans); font-size:12px; color:var(--text-muted); margin-top:2px;">Tap any book to read</p>
+      </div>
+      <span class="hud-progress-pill" id="library-total-stat" style="font-size:11px;">3 Books</span>
+    </div>
+    <div class="drawer-scrollable" id="library-books-container">
+      <!-- Injected via JS -->
+    </div>
+  </div>
+
+  <!-- DRAWER: CHAPTERS -->
+  <div class="sheet-drawer" id="drawer-chapters">
+    <div class="drawer-handle"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <div>
+        <h3 style="font-family:var(--font-sans); font-size:16px; font-weight:700;">Table of Contents</h3>
+        <span style="font-family:var(--font-sans); font-size:12px; color:var(--text-muted);" id="toc-book-title">Thinking, Fast and Slow</span>
+      </div>
+      <button class="sel-btn" id="btn-switch-book-from-toc" style="font-size:11px; padding:4px 8px;">Switch Book</button>
+    </div>
+    <div class="drawer-scrollable" id="chapters-list-container">
+      <!-- Injected via JS -->
+    </div>
+  </div>
+
+  <!-- DRAWER: GLOSSARY -->
+  <div class="sheet-drawer" id="drawer-glossary">
+    <div class="drawer-handle"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="font-family:var(--font-sans); font-size:16px; font-weight:700;">Key Concept Glossary</h3>
+      <span class="hud-progress-pill" style="font-size:11px;">Offline</span>
+    </div>
+    <input type="text" class="glossary-search-input" id="glossary-search" placeholder="Search concepts (WYSIATI, heuristics, logotherapy, now...)" />
+    <div class="drawer-scrollable" id="glossary-items-container">
+      <!-- Injected via JS -->
+    </div>
+  </div>
+
+  <!-- DRAWER: APPEARANCE -->
+  <div class="sheet-drawer" id="drawer-appearance">
+    <div class="drawer-handle"></div>
+    <h3 style="font-family:var(--font-sans); font-size:16px; font-weight:700; margin-bottom:18px;">Reading Appearance</h3>
+    
+    <div class="pref-row">
+      <span class="pref-label">Color Theme</span>
+    </div>
+    <div class="theme-grid" style="margin-bottom:20px;">
+      <button class="theme-opt-btn active" data-theme="paper">Paper</button>
+      <button class="theme-opt-btn" data-theme="white">White</button>
+      <button class="theme-opt-btn" data-theme="slate">Slate</button>
+      <button class="theme-opt-btn" data-theme="black">OLED</button>
+    </div>
+
+    <div class="pref-row">
+      <span class="pref-label">Typeface</span>
+      <div class="btn-toggle-group">
+        <button class="toggle-opt active" id="btn-font-serif">Book Serif</button>
+        <button class="toggle-opt" id="btn-font-sans">Modern Sans</button>
+      </div>
+    </div>
+
+    <div class="pref-row">
+      <span class="pref-label">Text Size</span>
+      <div class="size-stepper">
+        <button class="size-btn" id="btn-size-dec">−</button>
+        <span class="size-val" id="size-val">Medium</span>
+        <button class="size-btn" id="btn-size-inc">+</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI & DICTIONARY EXPLAINER POPUP MODAL -->
+  <div id="ai-modal">
+    <div class="ai-modal-header">
+      <span class="ai-modal-word" id="ai-word-title">Term</span>
+      <button class="ai-close-btn" id="btn-close-ai">✕</button>
+    </div>
+    <div class="ai-modal-body" id="ai-modal-body">
+      <p style="color:var(--text-muted);">Fetching definition and AI context...</p>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast">Saved</div>
+
+  <!-- Embedded Book Data Script for 100% offline file:// support -->
+  <script src="book_data.js"></script>
+
+  <script>
+    // COMPREHENSIVE OFFLINE GLOSSARY FOR ALL BOOKS
+    const GLOSSARY_TERMS = {
+      // Kahneman - Thinking, Fast and Slow
+      "System 1": { book: "Thinking Fast and Slow", def: "Operates automatically and quickly, with little or no effort and no voluntary control. Handles intuition, impulses, instant reactions, and impressions." },
+      "System 2": { book: "Thinking Fast and Slow", def: "Allocates attention to effortful mental operations that demand it, including complex computations, agency, self-control, and deliberate logical reasoning." },
+      "WYSIATI": { book: "Thinking Fast and Slow", def: "“What You See Is All There Is” — System 1 jumps to conclusions based solely on currently available evidence, blithely ignoring unobserved data." },
+      "Heuristic": { book: "Thinking Fast and Slow", def: "A simple rule-of-thumb mental shortcut used to find adequate, though imperfect, answers to difficult questions without exhaustive effort." },
+      "Cognitive Ease": { book: "Thinking Fast and Slow", def: "A relaxed mental state where information processing feels effortless, signaling familiarity, truth, safety, and lack of threats." },
+      "Cognitive Strain": { book: "Thinking Fast and Slow", def: "A heightened state of mental vigilance and effort, which sharpens analytical System 2 thinking but reduces creative intuition." },
+      "Anchoring": { book: "Thinking Fast and Slow", def: "The tendency to disproportionately rely on the first piece of information encountered when making subsequent judgments." },
+      "Priming": { book: "Thinking Fast and Slow", def: "The unconscious phenomenon where prior exposure to a word, concept, or stimulus automatically activates related thoughts and behaviors." },
+      "Halo Effect": { book: "Thinking Fast and Slow", def: "The tendency to like (or dislike) everything about a person or idea based on an emotionally salient first impression." },
+      "Ego Depletion": { book: "Thinking Fast and Slow", def: "The exhaustion of mental willpower and self-control that occurs after prolonged cognitive effort, leaving System 2 weakened." },
+      "Loss Aversion": { book: "Thinking Fast and Slow", def: "The powerful behavioral asymmetry where the psychological pain of losing something feels roughly twice as intense as the joy of gaining it." },
+      "Prospect Theory": { book: "Thinking Fast and Slow", def: "Kahneman and Tversky’s Nobel-prize winning model showing that humans evaluate risks based on changes relative to a reference point, rather than absolute wealth." },
+      "Framing Effect": { book: "Thinking Fast and Slow", def: "Drawing different conclusions from the same information depending on how that information is presented (e.g. 90% survival vs 10% mortality)." },
+      "Experiencing Self": { book: "Thinking Fast and Slow", def: "The self that lives in the present moment, experiencing pleasure and pain in real time." },
+      "Remembering Self": { book: "Thinking Fast and Slow", def: "The self that keeps score, constructs narratives, and makes choices based on peak memories and end moments, rather than duration." },
+      
+      // Frankl - Man's Search for Meaning
+      "Logotherapy": { book: "Man's Search for Meaning", def: "Viktor Frankl's psychotherapeutic approach focused on the human drive to discover meaning in life, even amidst unavoidable suffering." },
+      "Will to Meaning": { book: "Man's Search for Meaning", def: "The primary motivational force in human beings according to Frankl, distinct from Freud's will to pleasure and Adler's will to power." },
+      "Existential Vacuum": { book: "Man's Search for Meaning", def: "A pervasive state of inner emptiness, boredom, and meaninglessness that arises when traditional values and instincts no longer guide behavior." },
+      "Tragic Optimism": { book: "Man's Search for Meaning", def: "The capacity to maintain optimism and say “yes to life” in spite of the tragic triad: pain, guilt, and unavoidable death." },
+      "Noögenic Neurosis": { book: "Man's Search for Meaning", def: "Psychological neuroses that originate not from psychological complexes or trauma, but from existential spiritual frustration and lack of life purpose." },
+      "Noö-Dynamics": { book: "Man's Search for Meaning", def: "The healthy spiritual tension between what a person is and what they ought to become; Frankl argues tension is essential for mental health." },
+      "Dereflection": { book: "Man's Search for Meaning", def: "A logotherapeutic technique where a patient counteracts compulsive hyper-reflection by intentionally directing attention outward toward purposeful actions or loved ones." },
+      "Hyper-Intention": { book: "Man's Search for Meaning", def: "An excessive, forced desire to achieve something (like falling asleep or performing) that paradoxically prevents the desired result." },
+      "Delusion of Reprieve": { book: "Man's Search for Meaning", def: "The psychological illusion experienced by condemned prisoners that they might be spared execution or extermination right up until the final moment." },
+
+      // Tolle - The Power of Now
+      "Pain-Body": { book: "The Power of Now", def: "The accumulation of old emotional pain and unconscious trauma carried in the energy field of the body, which periodically takes over the mind and feeds on drama." },
+      "The Now": { book: "The Power of Now", def: "The present moment, the only true point of contact with reality and spiritual awareness, existing outside the mental illusion of chronological time." },
+      "Egoic Mind": { book: "The Power of Now", def: "The false sense of self created by identification with transient thoughts, memories, roles, possessions, and mental labels." },
+      "Psychological Time": { book: "The Power of Now", def: "The obsessive mental identification with the past (regret, guilt) and future (anxiety, anticipation), pulling awareness away from the present." },
+      "Pure Consciousness": { book: "The Power of Now", def: "Unconditioned awareness prior to thought, form, or conceptual identity; the silent witness of all perceptions and emotions." },
+      "Inner Body": { book: "The Power of Now", def: "The invisible, subtle energy field felt within the physical body; focusing awareness here anchors presence and quiets mind chatter." },
+      "The Unmanifested": { book: "The Power of Now", def: "The formless source and essence of all beings from which the manifest physical universe arises and into which it returns." },
+      "Surrender": { book: "The Power of Now", def: "The simple yet profound wisdom of yielding to rather than resisting the flow of life; accepting the “is-ness” of the present moment without internal resistance." },
+      "Watching the Thinker": { book: "The Power of Now", def: "The practice of listening to the voice in your head as an impartial observer without judging or identifying with it." }
+    };
+
+    // State
+    let currentBookId = localStorage.getItem('last-active-book-id') || 'thinking-fast-and-slow';
+    let currentBook = null;
+    let currentChapterIndex = 0;
+    let lastScrollY = window.scrollY;
+    let hudVisible = true;
+    let selectedTextString = '';
+
+    const sizes = ['sm', 'md', 'lg', 'xl'];
+    const sizeLabels = { 'sm': 'Small', 'md': 'Medium', 'lg': 'Large', 'xl': 'X-Large' };
+
+    // Elements
+    const readerContent = document.getElementById('reader-content');
+    const hudHeader = document.getElementById('hud-header');
+    const hudFooter = document.getElementById('hud-footer');
+    const hudBookName = document.getElementById('hud-book-name');
+    const hudChapterName = document.getElementById('hud-chapter-name');
+    const progressBar = document.getElementById('progress-bar');
+    const progressBadge = document.getElementById('progress-badge');
+    const selectionBar = document.getElementById('selection-bar');
+    const selSnippet = document.getElementById('sel-snippet');
+    const sheetOverlay = document.getElementById('sheet-overlay');
+    const toast = document.getElementById('toast');
+    const aiModal = document.getElementById('ai-modal');
+    const aiModalBody = document.getElementById('ai-modal-body');
+    const aiWordTitle = document.getElementById('ai-word-title');
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    // Load initial book
+    function initBook() {
+      if (!window.LIBRARY_BOOKS && !window.BOOK_DATA) {
+        readerContent.innerHTML = '<p style="text-align:center; padding:50px;">Error: book_data.js not loaded. Please keep book_data.js in the same folder.</p>';
+        return;
+      }
+
+      // Resolve active book
+      if (window.LIBRARY_BOOKS) {
+        if (!window.LIBRARY_BOOKS[currentBookId]) {
+          currentBookId = Object.keys(window.LIBRARY_BOOKS)[0];
+        }
+        currentBook = window.LIBRARY_BOOKS[currentBookId];
+      } else {
+        currentBook = window.BOOK_DATA;
+        currentBookId = currentBook.id || 'book';
+      }
+
+      hudBookName.innerHTML = `${currentBook.title} <span style="font-size:10px; opacity:0.75;">▾</span>`;
+      document.getElementById('toc-book-title').textContent = currentBook.title;
+
+      // Restore preferences
+      applyTheme(localStorage.getItem('reader-theme') || 'paper');
+      applyFont(localStorage.getItem('reader-font') || 'serif');
+      applySize(localStorage.getItem('reader-size') || 'md');
+
+      // Restore saved chapter for this book
+      const savedChIdx = parseInt(localStorage.getItem(`${currentBookId}-current-ch`) || '0', 10);
+      currentChapterIndex = Math.min(currentBook.chapters.length - 1, Math.max(0, savedChIdx));
+
+      renderChapter(currentChapterIndex, true);
+      renderLibraryDrawer();
+      renderChaptersDrawer();
+      renderGlossaryDrawer();
+    }
+
+    // Switch active book
+    window.switchBook = function(bookId) {
+      if (!window.LIBRARY_BOOKS || !window.LIBRARY_BOOKS[bookId]) return;
+      currentBookId = bookId;
+      localStorage.setItem('last-active-book-id', bookId);
+      currentBook = window.LIBRARY_BOOKS[bookId];
+
+      hudBookName.innerHTML = `${currentBook.title} <span style="font-size:10px; opacity:0.75;">▾</span>`;
+      document.getElementById('toc-book-title').textContent = currentBook.title;
+
+      const savedCh = parseInt(localStorage.getItem(`${currentBookId}-current-ch`) || '0', 10);
+      currentChapterIndex = Math.min(currentBook.chapters.length - 1, Math.max(0, savedCh));
+
+      closeAllDrawers();
+      renderChapter(currentChapterIndex, true);
+      renderLibraryDrawer();
+      renderChaptersDrawer();
+      renderGlossaryDrawer();
+      showToast(`Opened ${currentBook.title}`);
+    };
+
+    // Render single chapter
+    function renderChapter(index, restoreScroll = false) {
+      currentChapterIndex = index;
+      localStorage.setItem(`${currentBookId}-current-ch`, index);
+      const ch = currentBook.chapters[index];
+      
+      hudChapterName.textContent = (ch.number > 0 ? `${ch.number}. ` : '') + ch.title;
+
+      // In-chapter section jump pills
+      let sectionPillsHtml = '';
+      if (ch.sections && ch.sections.length > 0) {
+        sectionPillsHtml = '<div class="section-nav-shelf">';
+        ch.sections.forEach(sec => {
+          sectionPillsHtml += `<a href="#${sec.id}" class="sec-pill">${sec.title}</a>`;
+        });
+        sectionPillsHtml += '</div>';
+      }
+
+      let html = ch.content;
+
+      // Insert section pills after header if present
+      if (sectionPillsHtml && html.includes('</header>')) {
+        html = html.replace('</header>', '</header>' + sectionPillsHtml);
+      }
+
+      // Add Next Chapter card if not last
+      if (index < currentBook.chapters.length - 1) {
+        const nextCh = currentBook.chapters[index + 1];
+        html += `
+          <div class="next-chapter-card" onclick="goToNextChapter()">
+            <div class="next-label">Next Chapter</div>
+            <div class="next-title">${nextCh.number > 0 ? nextCh.number + '. ' : ''}${nextCh.title} →</div>
+          </div>
+        `;
+      } else {
+        html += `
+          <div style="text-align:center; padding: 40px 0; color:var(--text-muted); font-size:13px;">
+            — End of ${currentBook.title} —
+          </div>
+        `;
+      }
+
+      readerContent.innerHTML = html;
+
+      // Restore or scroll to top
+      if (restoreScroll) {
+        const savedPos = parseInt(localStorage.getItem(`${currentBookId}-ch-${index}-pos`) || '0', 10);
+        window.scrollTo({ top: savedPos, behavior: 'instant' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }
+
+      updateScrollProgress();
+      highlightCurrentInDrawer();
+    }
+
+    window.goToNextChapter = function() {
+      if (currentChapterIndex < currentBook.chapters.length - 1) {
+        renderChapter(currentChapterIndex + 1);
+      }
+    };
+
+    // Scroll progress listener
+    window.addEventListener('scroll', () => {
+      updateScrollProgress();
+      
+      const currentScrollY = window.scrollY;
+      if (Math.abs(currentScrollY - lastScrollY) > 15) {
+        if (currentScrollY > lastScrollY && currentScrollY > 100) {
+          if (hudVisible) {
+            hudHeader.classList.add('hidden');
+            hudFooter.classList.add('hidden');
+            hudVisible = false;
+          }
+        } else {
+          if (!hudVisible) {
+            hudHeader.classList.remove('hidden');
+            hudFooter.classList.remove('hidden');
+            hudVisible = true;
+          }
+        }
+        lastScrollY = currentScrollY;
+      }
+    }, { passive: true });
+
+    function updateScrollProgress() {
+      const scrollY = window.scrollY;
+      const totalScrollable = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalScrollable > 0) {
+        const pct = Math.min(100, Math.max(0, Math.round((scrollY / totalScrollable) * 100)));
+        progressBar.style.width = pct + '%';
+        progressBadge.textContent = pct + '%';
+        localStorage.setItem(`${currentBookId}-ch-${currentChapterIndex}-pos`, scrollY);
+      }
+    }
+
+    // Tap content to toggle HUD
+    readerContent.addEventListener('click', (e) => {
+      if (e.target.closest('button, a, mark, #selection-bar, .next-chapter-card, input')) return;
+      hudVisible = !hudVisible;
+      hudHeader.classList.toggle('hidden', !hudVisible);
+      hudFooter.classList.toggle('hidden', !hudVisible);
+    });
+
+    // DOCKED SELECTION BAR (Fixes native copy menu collision)
+    document.addEventListener('selectionchange', () => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+        selectionBar.classList.remove('active');
+        return;
+      }
+      selectedTextString = sel.toString().trim();
+      selSnippet.textContent = `“${selectedTextString.slice(0, 32)}...”`;
+      selectionBar.classList.add('active');
+    });
+
+    document.getElementById('btn-dismiss-sel').addEventListener('click', () => {
+      selectionBar.classList.remove('active');
+      window.getSelection().removeAllRanges();
+    });
+
+    document.getElementById('btn-highlight-sel').addEventListener('click', () => {
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      const mark = document.createElement('mark');
+      mark.className = 'user-hl';
+      mark.appendChild(range.extractContents());
+      range.insertNode(mark);
+      selectionBar.classList.remove('active');
+      sel.removeAllRanges();
+      showToast('Highlighted');
+    });
+
+    // FREE AI & DICTIONARY EXPLAINER
+    async function explainSelectedWord(word) {
+      aiWordTitle.textContent = word;
+      aiModal.classList.add('active');
+      sheetOverlay.classList.add('active');
+      aiModalBody.innerHTML = `
+        <div style="text-align:center; padding: 20px 0;">
+          <p style="margin-bottom:6px; font-weight:600;">✨ Consulting AI & Dictionary...</p>
+          <p style="font-size:12px; color:var(--text-muted);">Zero-setup contextual lookup for "${word}"</p>
+        </div>
+      `;
+
+      // 1. Offline Glossary lookup
+      const lower = word.toLowerCase();
+      const localKey = Object.keys(GLOSSARY_TERMS).find(k => k.toLowerCase() === lower || lower.includes(k.toLowerCase()));
+      let localHtml = '';
+      if (localKey) {
+        const item = GLOSSARY_TERMS[localKey];
+        localHtml = `
+          <div style="background:var(--accent-soft); padding:10px 12px; border-radius:8px; margin-bottom:12px;">
+            <div style="font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase;">Core Concept • ${item.book}</div>
+            <div style="margin-top:3px; font-weight:500;">${item.def}</div>
+          </div>
+        `;
+      }
+
+      // 2. Public Free AI & Free Dictionary lookup
+      let aiResult = null;
+      let dictResult = null;
+
+      try {
+        const cleanWord = word.replace(/[^a-zA-Z]/g, '');
+        const promptText = `Explain the concept "${word}" simply in 2 sentences for a reader reading ${currentBook.title}.`;
+        const [dictRes, aiRes] = await Promise.allSettled([
+          fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${cleanWord}`).then(r => r.ok ? r.json() : null),
+          fetch(`https://text.pollinations.ai/${encodeURIComponent(promptText)}`).then(r => r.ok ? r.text() : null)
+        ]);
+        if (dictRes.status === 'fulfilled' && dictRes.value) dictResult = dictRes.value;
+        if (aiRes.status === 'fulfilled' && aiRes.value) aiResult = aiRes.value;
+      } catch (err) {
+        console.log('Online fetch error:', err);
+      }
+
+      let contentHtml = localHtml;
+
+      if (aiResult) {
+        contentHtml += `
+          <div style="background:var(--card-bg); border:1px solid var(--border); padding:12px 14px; border-radius:10px; margin-bottom:12px;">
+            <div style="font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; margin-bottom:4px;">🤖 AI Context Explainer</div>
+            <p style="font-size:13.5px; line-height:1.5;">${aiResult}</p>
+          </div>
+        `;
+      }
+
+      if (dictResult && dictResult.length > 0) {
+        const entry = dictResult[0];
+        const phonetic = entry.phonetic || (entry.phonetics && entry.phonetics[0] ? entry.phonetics[0].text : '');
+        contentHtml += `
+          <div style="border-top:1px solid var(--border); padding-top:10px; margin-top:8px;">
+            <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">English Dictionary</div>
+            ${phonetic ? `<div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">${phonetic}</div>` : ''}
+        `;
+        (entry.meanings || []).slice(0, 2).forEach(m => {
+          contentHtml += `
+            <div style="margin-bottom:8px;">
+              <span style="font-size:11px; font-weight:bold; color:var(--accent); text-transform:uppercase;">${m.partOfSpeech}</span>
+              <p style="font-size:13px; margin-top:2px;">${m.definitions[0].definition}</p>
+            </div>
+          `;
+        });
+        contentHtml += `</div>`;
+      }
+
+      if (!contentHtml) {
+        contentHtml = `
+          <div style="text-align:center; padding:15px; color:var(--text-muted);">
+            <p>Offline / No network connection.</p>
+            <p style="font-size:12px; margin-top:6px;">Check the built-in Glossary in the bottom bar for key concepts!</p>
+          </div>
+        `;
+      }
+
+      aiModalBody.innerHTML = contentHtml;
+    }
+
+    document.getElementById('btn-explain-sel').addEventListener('click', () => {
+      selectionBar.classList.remove('active');
+      if (selectedTextString) explainSelectedWord(selectedTextString);
+    });
+    document.getElementById('btn-close-ai').addEventListener('click', () => {
+      aiModal.classList.remove('active');
+      sheetOverlay.classList.remove('active');
+    });
+
+    // LIBRARY DRAWER (MULTI-BOOK SWITCHER)
+    function renderLibraryDrawer() {
+      const container = document.getElementById('library-books-container');
+      if (!window.LIBRARY_BOOKS) {
+        container.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted);">Only 1 book currently loaded.</p>';
+        return;
+      }
+
+      const books = Object.values(window.LIBRARY_BOOKS);
+      document.getElementById('library-total-stat').textContent = `${books.length} Books`;
+
+      let html = '<div class="library-grid">';
+      books.forEach(book => {
+        const isCur = book.id === currentBookId;
+        const savedCh = parseInt(localStorage.getItem(`${book.id}-current-ch`) || '0', 10);
+        const progressCh = Math.min(book.chapters.length, savedCh + 1);
+        const pct = Math.round((progressCh / book.chapters.length) * 100);
+
+        html += `
+          <div class="book-card ${isCur ? 'current' : ''}" onclick="switchBook('${book.id}')">
+            <img src="${book.cover}" alt="${book.title}" class="book-card-cover" onerror="this.style.display='none'" />
+            <div class="book-card-info">
+              <div class="book-card-title">${book.title}</div>
+              <div class="book-card-author">${book.author}</div>
+              <div class="book-card-meta">
+                <span>${book.totalChapters} Ch.</span> • <span>${(book.totalWords || 0).toLocaleString()} words</span>
+                <span class="book-card-badge">${isCur ? 'Active Reading' : `${pct}% Read`}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    // CHAPTER NAVIGATION DRAWER
+    function renderChaptersDrawer() {
+      const container = document.getElementById('chapters-list-container');
+      let currentPart = '';
+      let html = '';
+
+      currentBook.chapters.forEach((ch, idx) => {
+        if (ch.part !== currentPart) {
+          currentPart = ch.part;
+          html += `<div class="part-group-title">${currentPart}</div>`;
+        }
+        const isCur = idx === currentChapterIndex;
+        html += `
+          <div class="ch-nav-card ${isCur ? 'current' : ''}" onclick="selectChapterFromDrawer(${idx})">
+            <div>
+              <div class="ch-nav-title">${ch.number > 0 ? ch.number + '. ' : ''}${ch.title}</div>
+            </div>
+            <div class="ch-nav-meta">~${ch.readTime}m</div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+    }
+
+    function highlightCurrentInDrawer() {
+      document.querySelectorAll('.ch-nav-card').forEach((card, idx) => {
+        card.classList.toggle('current', idx === currentChapterIndex);
+      });
+    }
+
+    window.selectChapterFromDrawer = function(idx) {
+      closeAllDrawers();
+      renderChapter(idx);
+    };
+
+    // GLOSSARY DRAWER
+    function renderGlossaryDrawer(filter = '') {
+      const container = document.getElementById('glossary-items-container');
+      const q = filter.toLowerCase().trim();
+      let html = '';
+      Object.entries(GLOSSARY_TERMS).forEach(([term, item]) => {
+        if (!q || term.toLowerCase().includes(q) || item.def.toLowerCase().includes(q) || item.book.toLowerCase().includes(q)) {
+          html += `
+            <div class="glossary-card">
+              <div class="glossary-term">
+                <span>${term}</span>
+                <span class="glossary-book-tag">${item.book}</span>
+              </div>
+              <div class="glossary-def">${item.def}</div>
+            </div>
+          `;
+        }
+      });
+      container.innerHTML = html || '<p style="text-align:center; padding:20px; color:var(--text-muted);">No matching concepts found.</p>';
+    }
+
+    document.getElementById('glossary-search').addEventListener('input', (e) => {
+      renderGlossaryDrawer(e.target.value);
+    });
+
+    // DRAWER OPEN / CLOSE CONTROLS
+    function openDrawer(drawerId) {
+      closeAllDrawers();
+      sheetOverlay.classList.add('active');
+      document.getElementById(drawerId).classList.add('active');
+    }
+    function closeAllDrawers() {
+      sheetOverlay.classList.remove('active');
+      document.querySelectorAll('.sheet-drawer').forEach(d => d.classList.remove('active'));
+      aiModal.classList.remove('active');
+    }
+
+    document.getElementById('hud-title-trigger').addEventListener('click', () => openDrawer('drawer-library'));
+    document.getElementById('btn-open-library').addEventListener('click', () => openDrawer('drawer-library'));
+    document.getElementById('btn-switch-book-from-toc').addEventListener('click', () => openDrawer('drawer-library'));
+    document.getElementById('btn-open-chapters').addEventListener('click', () => openDrawer('drawer-chapters'));
+    document.getElementById('btn-open-glossary').addEventListener('click', () => openDrawer('drawer-glossary'));
+    document.getElementById('btn-open-appearance').addEventListener('click', () => openDrawer('drawer-appearance'));
+    sheetOverlay.addEventListener('click', closeAllDrawers);
+
+    // APPEARANCE CONTROLS
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('reader-theme', theme);
+      document.querySelectorAll('.theme-opt-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.theme === theme);
+      });
+    }
+    document.querySelectorAll('.theme-opt-btn').forEach(btn => {
+      btn.addEventListener('click', () => applyTheme(btn.dataset.theme));
+    });
+
+    function applyFont(font) {
+      document.documentElement.setAttribute('data-font', font);
+      localStorage.setItem('reader-font', font);
+      document.getElementById('btn-font-serif').classList.toggle('active', font === 'serif');
+      document.getElementById('btn-font-sans').classList.toggle('active', font === 'sans');
+    }
+    document.getElementById('btn-font-serif').addEventListener('click', () => applyFont('serif'));
+    document.getElementById('btn-font-sans').addEventListener('click', () => applyFont('sans'));
+
+    function applySize(size) {
+      document.documentElement.setAttribute('data-size', size);
+      localStorage.setItem('reader-size', size);
+      document.getElementById('size-val').textContent = sizeLabels[size] || 'Medium';
+    }
+    document.getElementById('btn-size-dec').addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-size') || 'md';
+      const idx = sizes.indexOf(current);
+      if (idx > 0) applySize(sizes[idx - 1]);
+    });
+    document.getElementById('btn-size-inc').addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-size') || 'md';
+      const idx = sizes.indexOf(current);
+      if (idx < sizes.length - 1) applySize(sizes[idx + 1]);
+    });
+
+    // Start
+    initBook();
+  </script>
+</body>
+</html>

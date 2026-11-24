@@ -1,0 +1,6 @@
+*.epub
+downloaded_from_repo/
+__pycache__/
+*.pyc
+.DS_Store
+update_index_html.py

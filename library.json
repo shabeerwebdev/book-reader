@@ -1,0 +1,46 @@
+[
+  {
+    "id": "thinking-fast-and-slow",
+    "title": "Thinking, Fast and Slow",
+    "author": "Daniel Kahneman",
+    "cover": "covers/cover_tfs.jpeg",
+    "totalChapters": 42,
+    "totalWords": 169478,
+    "parts": [],
+    "description": "A masterwork on behavioral economics, cognitive biases, System 1 and System 2 thinking, and how human intuition diverges from statistical rationality."
+  },
+  {
+    "id": "mans-search-for-meaning",
+    "title": "Man's Search for Meaning",
+    "author": "Viktor E. Frankl",
+    "cover": "covers/cover_msm.jpg",
+    "totalChapters": 6,
+    "totalWords": 48158,
+    "parts": [
+      "Front Matter",
+      "Part One",
+      "Part Two",
+      "Part Three",
+      "Afterword"
+    ],
+    "description": "Frankl's enduring classic on his experiences surviving Auschwitz and Dachau, articulating logotherapy and finding ultimate purpose in any circumstance."
+  },
+  {
+    "id": "the-power-of-now",
+    "title": "The Power of Now",
+    "author": "Eckhart Tolle",
+    "cover": "covers/cover_pon.jpeg",
+    "totalChapters": 12,
+    "totalWords": 63069,
+    "parts": [
+      "Front Matter",
+      "Introduction",
+      "Presence & Pain",
+      "The Now Dimension",
+      "Inner Realities",
+      "Spiritual Practice",
+      "Surrender"
+    ],
+    "description": "A guide to spiritual enlightenment, disidentifying with the neurotic ego and psychological time, and discovering the profound peace of the present moment."
+  }
+]
