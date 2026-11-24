@@ -51,5 +51,20 @@
       "Surrender"
     ],
     "description": "A guide to spiritual enlightenment, disidentifying with the neurotic ego and psychological time, and discovering the profound peace of the present moment."
+  },
+  {
+    "id": "it-starts-with-us",
+    "title": "It Starts with Us",
+    "author": "Colleen Hoover",
+    "cover": "covers/cover_iswu.jpeg",
+    "totalChapters": 40,
+    "totalWords": 86463,
+    "parts": [
+      "Front Matter",
+      "Part I: Atlas & Lily",
+      "Part II: Finding Our Way",
+      "Back Matter"
+    ],
+    "description": "The emotional sequel to It Ends with Us, alternating between the perspectives of Atlas Corrigan and Lily Bloom as they navigate second chances, co-parenting, and healing."
   }
 ]

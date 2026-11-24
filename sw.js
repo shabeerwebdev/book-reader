@@ -1,4 +1,4 @@
-const CACHE_NAME = 'book-reader-v5';
+const CACHE_NAME = 'book-reader-v6';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -9,7 +9,8 @@ const ASSETS_TO_CACHE = [
   './icons/icon-512.png',
   './covers/cover_tfs.jpeg',
   './covers/cover_msm.jpg',
-  './covers/cover_pon.jpeg'
+  './covers/cover_pon.jpeg',
+  './covers/cover_iswu.jpeg'
 ];
 
 self.addEventListener('install', (event) => {

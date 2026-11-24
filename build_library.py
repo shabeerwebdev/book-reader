@@ -453,6 +453,206 @@ def get_pon_data():
         }
 
 # -------------------------------------------------------------
+# 4. IT STARTS WITH US (SIMON & SCHUSTER UK RETAIL EPUB)
+# -------------------------------------------------------------
+class ISWUHTMLCleaner(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.output = []
+        self.in_head = False
+        self.in_h1 = False
+        self.in_p = False
+        self.p_text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'head':
+            self.in_head = True
+        elif tag == 'h1':
+            self.in_h1 = True
+        elif not self.in_head and not self.in_h1:
+            if tag == 'p':
+                self.in_p = True
+                self.p_text = []
+            elif tag == 'blockquote':
+                self.output.append('<blockquote class="book-quote">')
+            elif tag in ('em', 'i'):
+                if self.in_p:
+                    self.p_text.append('<em>')
+                else:
+                    self.output.append('<em>')
+            elif tag in ('strong', 'b'):
+                if self.in_p:
+                    self.p_text.append('<strong>')
+                else:
+                    self.output.append('<strong>')
+            elif tag == 'hr':
+                self.output.append('<hr class="scene-divider" />\n')
+            elif tag == 'br':
+                if self.in_p:
+                    self.p_text.append('<br/>')
+                else:
+                    self.output.append('<br/>')
+
+    def handle_endtag(self, tag):
+        if tag == 'head':
+            self.in_head = False
+        elif tag == 'h1':
+            self.in_h1 = False
+        elif not self.in_head and not self.in_h1:
+            if tag == 'p':
+                self.in_p = False
+                raw = ''.join(self.p_text).strip()
+                if raw:
+                    self.output.append(f'<p class="book-p">{raw}</p>\n')
+                self.p_text = []
+            elif tag == 'blockquote':
+                self.output.append('</blockquote>\n')
+            elif tag in ('em', 'i'):
+                if self.in_p:
+                    self.p_text.append('</em>')
+                else:
+                    self.output.append('</em>')
+            elif tag in ('strong', 'b'):
+                if self.in_p:
+                    self.p_text.append('</strong>')
+                else:
+                    self.output.append('</strong>')
+
+    def handle_data(self, data):
+        if self.in_head or self.in_h1:
+            return
+        clean_data = data.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        if self.in_p:
+            self.p_text.append(clean_data)
+        else:
+            txt = clean_data.strip()
+            if txt:
+                self.output.append(f'<p class="book-p">{txt}</p>\n')
+
+def get_iswu_data():
+    iswu_path = os.path.join(DOWNLOADS_DIR, 'it-starts-with-us.epub')
+    with zipfile.ZipFile(iswu_path) as z:
+        ch_names = [
+            ("Chapter One: Atlas", 1),
+            ("Chapter Two: Lily", 2),
+            ("Chapter Three: Atlas", 3),
+            ("Chapter Four: Lily", 4),
+            ("Chapter Five: Atlas", 5),
+            ("Chapter Six: Lily", 6),
+            ("Chapter Seven: Atlas", 7),
+            ("Chapter Eight: Lily", 8),
+            ("Chapter Nine: Atlas", 9),
+            ("Chapter Ten: Lily", 10),
+            ("Chapter Eleven: Atlas", 11),
+            ("Chapter Twelve: Lily", 12),
+            ("Chapter Thirteen: Atlas", 13),
+            ("Chapter Fourteen: Lily", 14),
+            ("Chapter Fifteen: Atlas", 15),
+            ("Chapter Sixteen: Lily", 16),
+            ("Chapter Seventeen: Atlas", 17),
+            ("Chapter Eighteen: Lily", 18),
+            ("Chapter Nineteen: Atlas", 19),
+            ("Chapter Twenty: Lily", 20),
+            ("Chapter Twenty-One: Atlas", 21),
+            ("Chapter Twenty-Two: Lily", 22),
+            ("Chapter Twenty-Three: Atlas", 23),
+            ("Chapter Twenty-Four: Lily", 24),
+            ("Chapter Twenty-Five: Atlas", 25),
+            ("Chapter Twenty-Six: Lily", 26),
+            ("Chapter Twenty-Seven: Atlas", 27),
+            ("Chapter Twenty-Eight: Lily", 28),
+            ("Chapter Twenty-Nine: Atlas", 29),
+            ("Chapter Thirty: Lily", 30),
+            ("Chapter Thirty-One: Atlas", 31),
+            ("Chapter Thirty-Two: Lily", 32),
+            ("Chapter Thirty-Three: Atlas", 33),
+            ("Chapter Thirty-Four: Lily", 34),
+            ("Chapter Thirty-Five: Atlas", 35),
+            ("Chapter Thirty-Six: Lily", 36),
+            ("Chapter Thirty-Seven: Atlas", 37),
+        ]
+
+        chapters_spec = [
+            {
+                'id': 'dear-reader',
+                'number': 0,
+                'part': 'Front Matter',
+                'title': "Dear Reader (Author's Note)",
+                'files': ['text/part0003.html', 'text/part0004.html']
+            }
+        ]
+
+        for idx, (title, num) in enumerate(ch_names):
+            part_name = "Part I: Atlas & Lily" if num <= 18 else "Part II: Finding Our Way"
+            part_file = f"text/part{num + 4:04d}.html"
+            chapters_spec.append({
+                'id': f'ch{num:02d}',
+                'number': num,
+                'part': part_name,
+                'title': title,
+                'files': [part_file]
+            })
+
+        chapters_spec.append({
+            'id': 'acknowledgments',
+            'number': 38,
+            'part': 'Back Matter',
+            'title': 'Acknowledgments',
+            'files': ['text/part0042.html']
+        })
+        chapters_spec.append({
+            'id': 'about-author',
+            'number': 39,
+            'part': 'Back Matter',
+            'title': 'About the Author',
+            'files': ['text/part0044.html']
+        })
+
+        chapters = []
+        total_words = 0
+
+        for ch_info in chapters_spec:
+            parser = ISWUHTMLCleaner()
+            for f in ch_info['files']:
+                parser.feed(z.read(f).decode('utf-8', errors='ignore'))
+            body_html = ''.join(parser.output)
+
+            words = len(re.sub(r'<[^>]+>', ' ', body_html).split())
+            total_words += words
+            read_time = max(1, round(words / 220))
+
+            header_html = f'''
+        <header class="chapter-header" id="sec-top">
+          <div class="part-badge">{ch_info['part']}</div>
+          <h1 class="chapter-title">{ch_info['title']}</h1>
+          <div class="chapter-meta">
+            <span>Colleen Hoover</span> • <span class="ch-time-est">{read_time} min read</span>
+          </div>
+        </header>
+'''
+            chapters.append({
+                'id': ch_info['id'],
+                'number': ch_info['number'],
+                'part': ch_info['part'],
+                'title': ch_info['title'],
+                'words': words,
+                'readTime': read_time,
+                'sections': [],
+                'content': header_html + '\n' + body_html
+            })
+
+        return {
+            'id': 'it-starts-with-us',
+            'title': "It Starts with Us",
+            'author': "Colleen Hoover",
+            'cover': 'covers/cover_iswu.jpeg',
+            'totalChapters': len(chapters),
+            'totalWords': total_words,
+            'parts': ["Front Matter", "Part I: Atlas & Lily", "Part II: Finding Our Way", "Back Matter"],
+            'chapters': chapters
+        }
+
+# -------------------------------------------------------------
 # 4. GENERIC EPUB IMPORT (FOR ANY FUTURE BOOK DROPPED IN)
 # -------------------------------------------------------------
 def import_generic_epub(epub_path):
@@ -603,15 +803,17 @@ if __name__ == '__main__':
     if len(sys.argv) > 2 and sys.argv[1] == 'import':
         import_generic_epub(sys.argv[2])
     else:
-        print("Building full standard 3-book library...")
+        print("Building full standard 4-book library...")
         tfs = get_tfs_data()
         msm = get_msm_data()
         pon = get_pon_data()
+        iswu = get_iswu_data()
 
         library_dict = {
             tfs['id']: tfs,
             msm['id']: msm,
-            pon['id']: pon
+            pon['id']: pon,
+            iswu['id']: iswu
         }
 
         library_manifest = [
@@ -644,6 +846,16 @@ if __name__ == '__main__':
                 'totalWords': pon['totalWords'],
                 'parts': pon['parts'],
                 'description': "A guide to spiritual enlightenment, disidentifying with the neurotic ego and psychological time, and discovering the profound peace of the present moment."
+            },
+            {
+                'id': iswu['id'],
+                'title': iswu['title'],
+                'author': iswu['author'],
+                'cover': iswu['cover'],
+                'totalChapters': iswu['totalChapters'],
+                'totalWords': iswu['totalWords'],
+                'parts': iswu['parts'],
+                'description': "The emotional sequel to It Ends with Us, alternating between the perspectives of Atlas Corrigan and Lily Bloom as they navigate second chances, co-parenting, and healing."
             }
         ]
 
@@ -658,4 +870,4 @@ if __name__ == '__main__':
             f.write('// Default book for single-book backwards compatibility\n')
             f.write('window.BOOK_DATA = window.LIBRARY_BOOKS["thinking-fast-and-slow"];\n')
 
-        print("Library built successfully with 3 complete, verified books!")
+        print("Library built successfully with 4 complete, verified books!")
