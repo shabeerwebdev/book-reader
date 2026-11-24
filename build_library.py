@@ -92,6 +92,7 @@ class TFSRetailHTMLCleaner(HTMLParser):
         self.in_h2 = False
         self.in_section_heading = False
         self.heading_text = []
+        self.in_caption = False
 
     def handle_starttag(self, tag, attrs):
         attrs_dict = dict(attrs)
@@ -131,6 +132,7 @@ class TFSRetailHTMLCleaner(HTMLParser):
         elif tag in ("td", "th"):
             self.output.append(f'<{tag}>')
         elif tag == "div" and "caption" in attrs_dict.get("class", ""):
+            self.in_caption = True
             self.output.append('<div class="caption">')
         elif tag == "img":
             src = attrs_dict.get("src", "")
@@ -178,7 +180,8 @@ class TFSRetailHTMLCleaner(HTMLParser):
         elif tag in ("td", "th"):
             self.output.append(f'</{tag}>')
         elif tag == "div":
-            if self.output and '<div class="caption"' in self.output[-1]:
+            if self.in_caption:
+                self.in_caption = False
                 self.output.append('</div>\n')
 
     def handle_data(self, data):

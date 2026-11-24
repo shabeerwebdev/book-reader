@@ -10,7 +10,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="color-scheme" content="light dark" />
   <meta name="supported-color-schemes" content="light dark" />
-  <meta name="theme-color" content="#FAF6EE" />
+  <meta name="theme-color" content="#FAF6EE" id="meta-theme-color" />
+  <meta name="theme-color" content="#FAF6EE" media="(prefers-color-scheme: light)" id="meta-theme-light" />
+  <meta name="theme-color" content="#FAF6EE" media="(prefers-color-scheme: dark)" id="meta-theme-dark" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   
@@ -263,6 +265,12 @@
       margin-bottom: 24px;
       font-style: italic;
     }
+    .caption p, .caption .book-p {
+      font-size: var(--font-base) !important;
+      text-align: left !important;
+      color: var(--text-main) !important;
+      font-style: normal !important;
+    }
     .table-wrap {
       width: 100%;
       overflow-x: auto;
@@ -448,12 +456,14 @@
     }
 
     .book-list {
-      margin: 0 0 1.5em 1.25em;
+      margin: 0 0 1.5em 1.5em;
       padding-left: 0.5em;
+      text-align: left !important;
     }
-    .book-li {
+    .book-list li, .book-li {
       margin-bottom: 0.75em;
       line-height: 1.6;
+      text-align: left !important;
     }
 
     .book-quote {
@@ -1513,16 +1523,39 @@
       return html;
     }
 
-    // Insert inline bookmark marker right before selected text
+    // Insert inline bookmark marker right before selected text with contextual precision
     function insertInlineBookmarkMarker(rawHtml, bm) {
       if (!bm || !bm.textSnippet) return rawHtml;
-      const snippet = bm.textSnippet.slice(0, 30).trim();
-      const escaped = snippet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`(?![^<]*>)(${escaped})`, 'i');
+      const snippet = bm.textSnippet.trim();
+      const escapedSnippet = snippet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const inlineTag = `<span class="bm-inline-tag" id="active-chapter-bm" title="Bookmarked position"><svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>`;
-      if (regex.test(rawHtml)) {
-        return rawHtml.replace(regex, `${inlineTag}$1`);
+
+      // 1. Try matching with preceding context (prevents jumping to first occurrence of a word!)
+      if (bm.contextBefore && bm.contextBefore.length >= 6) {
+        const ctxPre = bm.contextBefore.slice(-20).trim();
+        const escapedCtx = ctxPre.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const ctxRegex = new RegExp(`(${escapedCtx}(?:<[^>]+>|\\s)*)(${escapedSnippet})`, 'i');
+        if (ctxRegex.test(rawHtml)) {
+          return rawHtml.replace(ctxRegex, `$1${inlineTag}$2`);
+        }
       }
+
+      // 2. Try matching with following context
+      if (bm.contextAfter && bm.contextAfter.length >= 6) {
+        const ctxPost = bm.contextAfter.slice(0, 20).trim();
+        const escapedPost = ctxPost.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const postRegex = new RegExp(`(${escapedSnippet})((?:<[^>]+>|\\s)*${escapedPost})`, 'i');
+        if (postRegex.test(rawHtml)) {
+          return rawHtml.replace(postRegex, `${inlineTag}$1$2`);
+        }
+      }
+
+      // 3. Fallback: match snippet directly
+      const fallbackRegex = new RegExp(`(?![^<]*>)(${escapedSnippet})`, 'i');
+      if (fallbackRegex.test(rawHtml)) {
+        return rawHtml.replace(fallbackRegex, `${inlineTag}$1`);
+      }
+
       return inlineTag + rawHtml;
     }
 
@@ -1712,12 +1745,32 @@
       showToast('Highlight saved');
     });
 
-    // 2. SET BOOKMARK FROM SELECTION (1 per chapter)
+    // 2. SET BOOKMARK FROM SELECTION (1 per chapter, exact contextual position)
     document.getElementById('btn-bookmark-sel').addEventListener('click', () => {
-      if (!selectedTextString) return;
-      setChapterBookmark(selectedTextString);
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0 || !selectedTextString) return;
+
+      const range = sel.getRangeAt(0);
+
+      let contextBefore = '';
+      let contextAfter = '';
+      try {
+        const preRange = document.createRange();
+        preRange.selectNodeContents(readerContent);
+        preRange.setEnd(range.startContainer, range.startOffset);
+        contextBefore = preRange.toString().slice(-40);
+
+        const postRange = document.createRange();
+        postRange.selectNodeContents(readerContent);
+        postRange.setStart(range.endContainer, range.endOffset);
+        contextAfter = postRange.toString().slice(0, 40);
+      } catch (err) {
+        console.log('Context extraction err:', err);
+      }
+
+      setChapterBookmark(selectedTextString, contextBefore, contextAfter, range);
       selectionBar.classList.remove('active');
-      window.getSelection().removeAllRanges();
+      sel.removeAllRanges();
     });
 
     // 3. TOP HEADER BOOKMARK TOGGLE
@@ -1739,18 +1792,41 @@
       }
     });
 
-    function setChapterBookmark(snippetText) {
+    function setChapterBookmark(snippetText, contextBefore = '', contextAfter = '', activeRange = null) {
+      // Remove any existing chapter bookmark marker from DOM first
+      const existingMarker = document.getElementById('active-chapter-bm');
+      if (existingMarker) existingMarker.remove();
+
+      // If activeRange is provided, insert inline marker immediately at the exact position in the live DOM
+      if (activeRange) {
+        try {
+          const inlineMarker = document.createElement('span');
+          inlineMarker.className = 'bm-inline-tag';
+          inlineMarker.id = 'active-chapter-bm';
+          inlineMarker.title = 'Bookmarked position';
+          inlineMarker.innerHTML = '<svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>';
+          activeRange.insertNode(inlineMarker);
+        } catch (e) {
+          console.log('Inline marker insert err:', e);
+        }
+      }
+
       const bms = getBookmarks(currentBookId);
       bms[currentChapterIndex] = {
         chapterIndex: currentChapterIndex,
         chapterTitle: currentBook.chapters[currentChapterIndex].title,
         textSnippet: snippetText.slice(0, 70).trim(),
+        contextBefore: contextBefore,
+        contextAfter: contextAfter,
         scrollY: window.scrollY,
         createdAt: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
       };
       saveBookmarks(currentBookId, bms);
       btnHeaderBm.classList.add('active');
-      renderChapter(currentChapterIndex, false, 'active-chapter-bm');
+
+      if (!activeRange) {
+        renderChapter(currentChapterIndex, false, 'active-chapter-bm');
+      }
       renderSavedDrawer();
       showToast(`Bookmarked in ${currentBook.chapters[currentChapterIndex].title}`);
     }
@@ -1956,7 +2032,17 @@
 
     window.jumpToSavedBookmark = function(chIdx) {
       closeAllDrawers();
+      const bms = getBookmarks(currentBookId);
+      const bm = bms[chIdx];
       renderChapter(chIdx, false, 'active-chapter-bm');
+      setTimeout(() => {
+        const marker = document.getElementById('active-chapter-bm');
+        if (marker) {
+          marker.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (bm && typeof bm.scrollY === 'number') {
+          window.scrollTo({ top: bm.scrollY, behavior: 'smooth' });
+        }
+      }, 100);
     };
 
     window.deleteSavedBookmark = function(chIdx) {
@@ -2167,12 +2253,19 @@
       document.documentElement.style.backgroundColor = currentThemeColor;
       document.body.style.backgroundColor = currentThemeColor;
 
-      // Force Android Chrome system bars (both status bar & navigation bar) to repaint by re-appending meta
-      document.querySelectorAll('meta[name="theme-color"]').forEach(el => el.remove());
-      const metaTheme = document.createElement('meta');
-      metaTheme.name = 'theme-color';
-      metaTheme.content = currentThemeColor;
-      document.head.appendChild(metaTheme);
+      // Force Android Chrome system bars (both status bar & navigation bar) to repaint across light & dark phone OS settings
+      ['meta-theme-color', 'meta-theme-light', 'meta-theme-dark'].forEach(id => {
+        let el = document.getElementById(id);
+        if (!el) {
+          el = document.createElement('meta');
+          el.name = 'theme-color';
+          el.id = id;
+          if (id === 'meta-theme-light') el.media = '(prefers-color-scheme: light)';
+          if (id === 'meta-theme-dark') el.media = '(prefers-color-scheme: dark)';
+          document.head.appendChild(el);
+        }
+        el.setAttribute('content', currentThemeColor);
+      });
     }
     document.querySelectorAll('.theme-opt-btn').forEach(btn => {
       btn.addEventListener('click', () => applyTheme(btn.dataset.theme));
