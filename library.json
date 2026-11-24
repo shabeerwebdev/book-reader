@@ -5,8 +5,17 @@
     "author": "Daniel Kahneman",
     "cover": "covers/cover_tfs.jpeg",
     "totalChapters": 42,
-    "totalWords": 169478,
-    "parts": [],
+    "totalWords": 170775,
+    "parts": [
+      "Introduction",
+      "Part 1: Two Systems",
+      "Part 2: Heuristics and Biases",
+      "Part 3: Overconfidence",
+      "Part 4: Choices",
+      "Part 5: Two Selves",
+      "Conclusions",
+      "Appendices"
+    ],
     "description": "A masterwork on behavioral economics, cognitive biases, System 1 and System 2 thinking, and how human intuition diverges from statistical rationality."
   },
   {

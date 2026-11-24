@@ -81,13 +81,220 @@ class EditorialHTMLCleaner(HTMLParser):
                 self.output.append(f'<p class="book-p">{txt}</p>\n')
 
 # -------------------------------------------------------------
-# 1. LOAD THINKING, FAST AND SLOW
+# 1. THINKING, FAST AND SLOW (OFFICIAL RETAIL PENGUIN EPUB)
 # -------------------------------------------------------------
+class TFSRetailHTMLCleaner(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.output = []
+        self.sections = []
+        self.in_head = False
+        self.in_h2 = False
+        self.in_section_heading = False
+        self.heading_text = []
+
+    def handle_starttag(self, tag, attrs):
+        attrs_dict = dict(attrs)
+        if tag == "head":
+            self.in_head = True
+            return
+        if self.in_head:
+            return
+
+        if tag == "h2":
+            self.in_h2 = True
+            return
+        elif tag in ("h3", "h4", "h5"):
+            self.in_section_heading = True
+            self.heading_text = []
+            return
+        elif tag == "p":
+            self.output.append('<p class="book-p">')
+        elif tag == "blockquote":
+            self.output.append('<blockquote class="book-quote">')
+        elif tag in ("em", "i"):
+            self.output.append('<em>')
+        elif tag in ("strong", "b"):
+            self.output.append('<strong>')
+        elif tag == "br":
+            self.output.append('<br/>')
+        elif tag == "ul":
+            self.output.append('<ul class="book-list">')
+        elif tag == "ol":
+            self.output.append('<ol class="book-list">')
+        elif tag == "li":
+            self.output.append('<li>')
+        elif tag == "table":
+            self.output.append('<div class="table-wrap"><table class="book-table">')
+        elif tag == "tr":
+            self.output.append('<tr>')
+        elif tag in ("td", "th"):
+            self.output.append(f'<{tag}>')
+        elif tag == "div" and "caption" in attrs_dict.get("class", ""):
+            self.output.append('<div class="caption">')
+        elif tag == "img":
+            src = attrs_dict.get("src", "")
+            if "PCHI_1" not in src and "penguinLogo" not in src and "prhuklogo" not in src:
+                fname = os.path.basename(src)
+                self.output.append(f'<div class="figure-container"><img class="book-img" src="images/{fname}" alt="Illustration" /></div>')
+
+    def handle_endtag(self, tag):
+        if tag == "head":
+            self.in_head = False
+            return
+        if self.in_head:
+            return
+
+        if tag == "h2":
+            self.in_h2 = False
+            return
+        elif tag in ("h3", "h4", "h5"):
+            self.in_section_heading = False
+            t = " ".join("".join(self.heading_text).split())
+            if t:
+                clean_t = t.title()
+                sec_id = "sec-" + re.sub(r'[^a-z0-9]+', '-', t.lower()).strip('-')
+                self.sections.append({"id": sec_id, "title": clean_t})
+                self.output.append(f'<h2 class="section-heading" id="{sec_id}">{clean_t}</h2>\n')
+            return
+        elif tag == "p":
+            self.output.append('</p>\n')
+        elif tag == "blockquote":
+            self.output.append('</blockquote>\n')
+        elif tag in ("em", "i"):
+            self.output.append('</em>')
+        elif tag in ("strong", "b"):
+            self.output.append('</strong>')
+        elif tag == "ul":
+            self.output.append('</ul>\n')
+        elif tag == "ol":
+            self.output.append('</ol>\n')
+        elif tag == "li":
+            self.output.append('</li>\n')
+        elif tag == "table":
+            self.output.append('</table></div>\n')
+        elif tag == "tr":
+            self.output.append('</tr>\n')
+        elif tag in ("td", "th"):
+            self.output.append(f'</{tag}>')
+        elif tag == "div":
+            if self.output and '<div class="caption"' in self.output[-1]:
+                self.output.append('</div>\n')
+
+    def handle_data(self, data):
+        if self.in_head or self.in_h2:
+            return
+        if self.in_section_heading:
+            self.heading_text.append(data)
+            return
+
+        txt = data.strip()
+        if not txt:
+            if data and self.output and not self.output[-1].endswith("\n") and not self.output[-1].endswith(">"):
+                self.output.append(" ")
+            return
+
+        cleaned = data.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        if self.output and (self.output[-1].startswith("<p") or self.output[-1].startswith("<td") or self.output[-1].startswith("<th") or self.output[-1].startswith("<li") or self.output[-1].startswith("<div class=\"caption") or not self.output[-1].endswith("\n")):
+            self.output.append(cleaned)
+        else:
+            self.output.append(f'<p class="book-p">{cleaned}</p>\n')
+
 def get_tfs_data():
-    with open(os.path.join(BASE_DIR, 'book_data.json'), 'r', encoding='utf-8') as f:
-        tfs = json.load(f)
-    tfs['cover'] = 'covers/cover_tfs.jpeg'
-    return tfs
+    tfs_epub_path = os.path.join(DOWNLOADS_DIR, 'thinking-fast-and-slow-retail.epub')
+    tfs_spec = [
+        {"id": "intro", "number": 0, "part": "Introduction", "title": "Introduction", "file": "OPS/xhtml/introduction.xhtml"},
+        {"id": "ch01", "number": 1, "part": "Part 1: Two Systems", "title": "1: The Characters of the Story", "file": "OPS/xhtml/chapter001.xhtml"},
+        {"id": "ch02", "number": 2, "part": "Part 1: Two Systems", "title": "2: Attention and Effort", "file": "OPS/xhtml/chapter002.xhtml"},
+        {"id": "ch03", "number": 3, "part": "Part 1: Two Systems", "title": "3: The Lazy Controller", "file": "OPS/xhtml/chapter003.xhtml"},
+        {"id": "ch04", "number": 4, "part": "Part 1: Two Systems", "title": "4: The Associative Machine", "file": "OPS/xhtml/chapter004.xhtml"},
+        {"id": "ch05", "number": 5, "part": "Part 1: Two Systems", "title": "5: Cognitive Ease", "file": "OPS/xhtml/chapter005.xhtml"},
+        {"id": "ch06", "number": 6, "part": "Part 1: Two Systems", "title": "6: Norms, Surprises, and Causes", "file": "OPS/xhtml/chapter006.xhtml"},
+        {"id": "ch07", "number": 7, "part": "Part 1: Two Systems", "title": "7: A Machine for Jumping to Conclusions", "file": "OPS/xhtml/chapter007.xhtml"},
+        {"id": "ch08", "number": 8, "part": "Part 1: Two Systems", "title": "8: How Judgments Happen", "file": "OPS/xhtml/chapter008.xhtml"},
+        {"id": "ch09", "number": 9, "part": "Part 1: Two Systems", "title": "9: Answering an Easier Question", "file": "OPS/xhtml/chapter009.xhtml"},
+        {"id": "ch10", "number": 10, "part": "Part 2: Heuristics and Biases", "title": "10: The Law of Small Numbers", "file": "OPS/xhtml/chapter010.xhtml"},
+        {"id": "ch11", "number": 11, "part": "Part 2: Heuristics and Biases", "title": "11: Anchors", "file": "OPS/xhtml/chapter011.xhtml"},
+        {"id": "ch12", "number": 12, "part": "Part 2: Heuristics and Biases", "title": "12: The Science of Availability", "file": "OPS/xhtml/chapter012.xhtml"},
+        {"id": "ch13", "number": 13, "part": "Part 2: Heuristics and Biases", "title": "13: Availability, Emotion, and Risk", "file": "OPS/xhtml/chapter013.xhtml"},
+        {"id": "ch14", "number": 14, "part": "Part 2: Heuristics and Biases", "title": "14: Tom W’s Specialty", "file": "OPS/xhtml/chapter014.xhtml"},
+        {"id": "ch15", "number": 15, "part": "Part 2: Heuristics and Biases", "title": "15: Linda: Less is More", "file": "OPS/xhtml/chapter015.xhtml"},
+        {"id": "ch16", "number": 16, "part": "Part 2: Heuristics and Biases", "title": "16: Causes Trump Statistics", "file": "OPS/xhtml/chapter016.xhtml"},
+        {"id": "ch17", "number": 17, "part": "Part 2: Heuristics and Biases", "title": "17: Regression to the Mean", "file": "OPS/xhtml/chapter017.xhtml"},
+        {"id": "ch18", "number": 18, "part": "Part 2: Heuristics and Biases", "title": "18: Taming Intuitive Predictions", "file": "OPS/xhtml/chapter018.xhtml"},
+        {"id": "ch19", "number": 19, "part": "Part 3: Overconfidence", "title": "19: The Illusion of Understanding", "file": "OPS/xhtml/chapter019.xhtml"},
+        {"id": "ch20", "number": 20, "part": "Part 3: Overconfidence", "title": "20: The Illusion of Validity", "file": "OPS/xhtml/chapter020.xhtml"},
+        {"id": "ch21", "number": 21, "part": "Part 3: Overconfidence", "title": "21: Intuitions vs. Formulas", "file": "OPS/xhtml/chapter021.xhtml"},
+        {"id": "ch22", "number": 22, "part": "Part 3: Overconfidence", "title": "22: Expert Intuition: When Can We Trust It?", "file": "OPS/xhtml/chapter022.xhtml"},
+        {"id": "ch23", "number": 23, "part": "Part 3: Overconfidence", "title": "23: The Outside View", "file": "OPS/xhtml/chapter023.xhtml"},
+        {"id": "ch24", "number": 24, "part": "Part 3: Overconfidence", "title": "24: The Engine of Capitalism", "file": "OPS/xhtml/chapter024.xhtml"},
+        {"id": "ch25", "number": 25, "part": "Part 4: Choices", "title": "25: Bernoulli’s Errors", "file": "OPS/xhtml/chapter025.xhtml"},
+        {"id": "ch26", "number": 26, "part": "Part 4: Choices", "title": "26: Prospect Theory", "file": "OPS/xhtml/chapter026.xhtml"},
+        {"id": "ch27", "number": 27, "part": "Part 4: Choices", "title": "27: The Endowment Effect", "file": "OPS/xhtml/chapter027.xhtml"},
+        {"id": "ch28", "number": 28, "part": "Part 4: Choices", "title": "28: Bad Events", "file": "OPS/xhtml/chapter028.xhtml"},
+        {"id": "ch29", "number": 29, "part": "Part 4: Choices", "title": "29: The Fourfold Pattern", "file": "OPS/xhtml/chapter029.xhtml"},
+        {"id": "ch30", "number": 30, "part": "Part 4: Choices", "title": "30: Rare Events", "file": "OPS/xhtml/chapter030.xhtml"},
+        {"id": "ch31", "number": 31, "part": "Part 4: Choices", "title": "31: Risk Policies", "file": "OPS/xhtml/chapter031.xhtml"},
+        {"id": "ch32", "number": 32, "part": "Part 4: Choices", "title": "32: Keeping Score", "file": "OPS/xhtml/chapter032.xhtml"},
+        {"id": "ch33", "number": 33, "part": "Part 4: Choices", "title": "33: Reversals", "file": "OPS/xhtml/chapter033.xhtml"},
+        {"id": "ch34", "number": 34, "part": "Part 4: Choices", "title": "34: Frames and Reality", "file": "OPS/xhtml/chapter034.xhtml"},
+        {"id": "ch35", "number": 35, "part": "Part 5: Two Selves", "title": "35: Two Selves", "file": "OPS/xhtml/chapter035.xhtml"},
+        {"id": "ch36", "number": 36, "part": "Part 5: Two Selves", "title": "36: Life as a Story", "file": "OPS/xhtml/chapter036.xhtml"},
+        {"id": "ch37", "number": 37, "part": "Part 5: Two Selves", "title": "37: Experienced Well-Being", "file": "OPS/xhtml/chapter037.xhtml"},
+        {"id": "ch38", "number": 38, "part": "Part 5: Two Selves", "title": "38: Thinking About Life", "file": "OPS/xhtml/chapter038.xhtml"},
+        {"id": "conclusions", "number": 39, "part": "Conclusions", "title": "Conclusions", "file": "OPS/xhtml/conclusions.xhtml"},
+        {"id": "app_a", "number": 40, "part": "Appendices", "title": "Appendix A: Judgment Under Uncertainty: Heuristics and Biases", "file": "OPS/xhtml/appendix001.xhtml"},
+        {"id": "app_b", "number": 41, "part": "Appendices", "title": "Appendix B: Choices, Values, and Frames", "file": "OPS/xhtml/appendix002.xhtml"}
+    ]
+
+    chapters = []
+    total_words = 0
+
+    with zipfile.ZipFile(tfs_epub_path) as z:
+        for ch in tfs_spec:
+            parser = TFSRetailHTMLCleaner()
+            parser.feed(z.read(ch["file"]).decode('utf-8', errors='ignore'))
+            body_html = ''.join(parser.output)
+
+            words = len(re.sub(r'<[^>]+>', ' ', body_html).split())
+            total_words += words
+            read_time = max(1, round(words / 220))
+
+            header_html = f'''
+        <header class="chapter-header" id="sec-top">
+          <div class="part-badge">{ch['part']}</div>
+          <h1 class="chapter-title">{ch['title']}</h1>
+          <div class="chapter-meta">
+            <span>Daniel Kahneman</span> • <span class="ch-time-est">{read_time} min read</span>
+          </div>
+        </header>
+'''
+            chapters.append({
+                'id': ch['id'],
+                'number': ch['number'],
+                'part': ch['part'],
+                'title': ch['title'],
+                'words': words,
+                'readTime': read_time,
+                'sections': parser.sections,
+                'content': header_html + '\n' + body_html
+            })
+
+    tfs_book = {
+        'id': 'thinking-fast-and-slow',
+        'title': "Thinking, Fast and Slow",
+        'author': "Daniel Kahneman",
+        'cover': 'covers/cover_tfs.jpeg',
+        'totalChapters': len(chapters),
+        'totalWords': total_words,
+        'parts': ["Introduction", "Part 1: Two Systems", "Part 2: Heuristics and Biases", "Part 3: Overconfidence", "Part 4: Choices", "Part 5: Two Selves", "Conclusions", "Appendices"],
+        'chapters': chapters
+    }
+
+    with open(os.path.join(BASE_DIR, 'book_data.json'), 'w', encoding='utf-8') as f:
+        json.dump(tfs_book, f, ensure_ascii=False)
+
+    return tfs_book
 
 # -------------------------------------------------------------
 # 2. MAN'S SEARCH FOR MEANING

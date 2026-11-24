@@ -8,6 +8,8 @@
   <!-- PWA Meta & Installability -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="supported-color-schemes" content="light dark" />
   <meta name="theme-color" content="#FAF6EE" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
@@ -20,8 +22,14 @@
       --content-max-width: 620px;
     }
 
+    html {
+      background-color: var(--bg);
+      transition: background-color 0.25s ease;
+    }
+
     /* THEME 1: Warm Paper (Calibrated for non-glare, day/travel reading) */
     html[data-theme="paper"] {
+      color-scheme: light;
       --bg: #FAF6EE;
       --bg-surface: #F3EEDB;
       --text-main: #2C2B29;
@@ -38,6 +46,7 @@
 
     /* THEME 2: Editorial White */
     html[data-theme="white"] {
+      color-scheme: light;
       --bg: #FFFFFF;
       --bg-surface: #F5F5F7;
       --text-main: #242426;
@@ -54,6 +63,7 @@
 
     /* THEME 3: Slate Night */
     html[data-theme="slate"] {
+      color-scheme: dark;
       --bg: #1C1C1E;
       --bg-surface: #2C2C2E;
       --text-main: #F0F0F5;
@@ -70,6 +80,7 @@
 
     /* THEME 4: OLED Pure Black (Maximum battery saving on travel) */
     html[data-theme="black"] {
+      color-scheme: dark;
       --bg: #000000;
       --bg-surface: #121212;
       --text-main: #DCDCE0;
@@ -223,23 +234,68 @@
       color: var(--text-muted);
     }
 
+    /* FIGURES, ILLUSTRATIONS & TABLES */
+    .figure-container {
+      margin: 28px auto 10px auto;
+      text-align: center;
+      max-width: 100%;
+    }
+    .book-img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+      display: block;
+      margin: 0 auto;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+    html[data-theme="slate"] .book-img,
+    html[data-theme="black"] .book-img {
+      filter: brightness(0.92) contrast(1.05);
+      background: #ffffff;
+      padding: 6px;
+      border-radius: 8px;
+    }
+    .caption {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: 8px;
+      margin-bottom: 24px;
+      font-style: italic;
+    }
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      margin: 24px 0;
+      -webkit-overflow-scrolling: touch;
+    }
+    .book-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0 auto;
+    }
+    .book-table td, .book-table th {
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+    }
+
     /* ENHANCED BOTTOM TOOLBAR: ICON-ONLY, LARGER TOUCH TARGETS */
     .hud-footer {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      background: var(--bg);
+      background-color: var(--bg);
       border-top: 1px solid var(--border);
-      padding: 11px 16px max(16px, env(safe-area-inset-bottom)) 16px;
+      padding: 10px 16px max(14px, env(safe-area-inset-bottom)) 16px;
       display: flex;
       justify-content: space-around;
       align-items: center;
       z-index: 90;
       box-shadow: var(--hud-shadow);
-      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, background-color 0.25s ease, border-color 0.25s ease;
     }
     .hud-footer.hidden {
       transform: translateY(100%);
@@ -2040,11 +2096,27 @@
       document.querySelectorAll('.theme-opt-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.theme === theme);
       });
-      // Update meta theme-color for PWA header
-      const metaTheme = document.querySelector('meta[name="theme-color"]');
-      if (metaTheme) {
-        metaTheme.setAttribute('content', theme === 'white' ? '#FFFFFF' : theme === 'slate' ? '#1C1C1E' : theme === 'black' ? '#000000' : '#FAF6EE');
-      }
+
+      const themeColors = {
+        paper: '#FAF6EE',
+        white: '#FFFFFF',
+        slate: '#1C1C1E',
+        black: '#000000'
+      };
+      const currentThemeColor = themeColors[theme] || '#FAF6EE';
+      const isDark = (theme === 'slate' || theme === 'black');
+
+      // Direct color-scheme update on HTML root for native Android 3-button & gesture navigation bars
+      document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+      document.documentElement.style.backgroundColor = currentThemeColor;
+      document.body.style.backgroundColor = currentThemeColor;
+
+      // Force Android Chrome system bars (both status bar & navigation bar) to repaint by re-appending meta
+      document.querySelectorAll('meta[name="theme-color"]').forEach(el => el.remove());
+      const metaTheme = document.createElement('meta');
+      metaTheme.name = 'theme-color';
+      metaTheme.content = currentThemeColor;
+      document.head.appendChild(metaTheme);
     }
     document.querySelectorAll('.theme-opt-btn').forEach(btn => {
       btn.addEventListener('click', () => applyTheme(btn.dataset.theme));
