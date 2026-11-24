@@ -581,21 +581,48 @@
       fill: currentColor;
     }
 
-    /* NON-BLOCKING BOTTOM SHEETS & DRAWERS (Background remains scrollable) */
+    /* GLOBAL SVG & CALLOUT ICON SAFETY */
+    svg {
+      max-width: 100%;
+    }
+    .callout-icon,
+    .speaking-callout svg,
+    .speaking-header svg {
+      display: none !important;
+    }
+    .speaking-callout {
+      margin: 20px 0;
+      padding: 14px 18px;
+      background: var(--callout-bg);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+    }
+
+    /* SCROLL LOCK PREVENTING BACKGROUND SCROLLING WHILE BOTTOM SHEET IS OPEN */
+    html.drawer-open,
+    body.drawer-open {
+      overflow: hidden !important;
+      height: 100% !important;
+      touch-action: none !important;
+    }
+
+    /* BOTTOM SHEETS & DRAWERS WITH SCROLL ISOLATION */
     .sheet-overlay {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.28);
+      background: rgba(0, 0, 0, 0.38);
       z-index: 150;
       opacity: 0;
-      pointer-events: none; /* Allows scrolling background page freely */
+      pointer-events: none;
       transition: opacity 0.22s ease;
     }
     .sheet-overlay.active {
       opacity: 1;
+      pointer-events: auto !important;
+      touch-action: none !important;
     }
 
     .sheet-drawer {
@@ -603,7 +630,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      max-height: 75vh;
+      max-height: 80vh;
       background: var(--bg);
       border-top: 1px solid var(--border);
       border-radius: 20px 20px 0 0;
@@ -612,20 +639,30 @@
       transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
-      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
-      padding: 10px 18px max(24px, env(safe-area-inset-bottom)) 18px;
+      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.22);
+      padding: 12px 18px max(24px, env(safe-area-inset-bottom)) 18px;
+      overscroll-behavior: contain;
+      overscroll-behavior-y: contain;
       touch-action: pan-y;
     }
     .sheet-drawer.active {
       transform: translateY(0);
     }
     .drawer-handle {
-      width: 40px;
+      width: 44px;
       height: 5px;
       border-radius: 3px;
       background: var(--border);
       margin: 0 auto 12px auto;
       cursor: grab;
+      touch-action: none;
+    }
+    .drawer-scrollable {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      overscroll-behavior-y: contain;
+      flex: 1;
     }
     .drawer-top-row {
       display: flex;
@@ -1723,6 +1760,9 @@
       aiWordTitle.textContent = word;
       aiModal.classList.add('active');
       sheetOverlay.classList.add('active');
+      document.documentElement.classList.add('drawer-open');
+      document.body.classList.add('drawer-open');
+      history.pushState({ drawerOpen: true, drawerId: 'ai-modal' }, '');
       aiModalBody.innerHTML = `
         <div style="text-align:center; padding: 20px 0;">
           <p style="margin-bottom:6px; font-weight:600;">Consulting Definition &amp; Context...</p>
@@ -2050,12 +2090,17 @@
       renderGlossaryDrawer(e.target.value);
     });
 
-    // DRAWER OPEN / CLOSE WITH HISTORY API (Back button closes drawer!)
+    // DRAWER OPEN / CLOSE WITH HISTORY API & SCROLL LOCK
     function openDrawer(drawerId) {
       closeAllDrawers(false);
       sheetOverlay.classList.add('active');
+      document.documentElement.classList.add('drawer-open');
+      document.body.classList.add('drawer-open');
       const d = document.getElementById(drawerId);
-      if (d) d.classList.add('active');
+      if (d) {
+        d.classList.add('active');
+        d.style.transform = '';
+      }
       if (drawerId === 'drawer-saved') renderSavedDrawer();
 
       // Push history state so hardware/browser back button closes drawer
@@ -2065,13 +2110,24 @@
     function closeAllDrawers(syncHistory = true) {
       const hadOpen = document.querySelector('.sheet-drawer.active, #ai-modal.active');
       sheetOverlay.classList.remove('active');
-      document.querySelectorAll('.sheet-drawer').forEach(d => d.classList.remove('active'));
+      document.documentElement.classList.remove('drawer-open');
+      document.body.classList.remove('drawer-open');
+      document.querySelectorAll('.sheet-drawer').forEach(d => {
+        d.classList.remove('active');
+        d.style.transform = '';
+      });
       aiModal.classList.remove('active');
 
       if (syncHistory && hadOpen && history.state && history.state.drawerOpen) {
         history.back();
       }
     }
+
+    // Dismiss when tapping background overlay & prevent overlay touch bubbling
+    sheetOverlay.addEventListener('click', () => closeAllDrawers());
+    sheetOverlay.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+    }, { passive: false });
 
     // Hardware / Browser Back Button Event Listener
     window.addEventListener('popstate', (e) => {
@@ -2151,27 +2207,55 @@
     // INTUITIVE GESTURES & SHORTCUTS
     // -------------------------------------------------------------
 
-    // 1. Swipe down on bottom sheets to dismiss
+    // 1. Pull down on bottom sheet to dismiss (with native tracking & background scroll prevention)
     document.querySelectorAll('.sheet-drawer').forEach(drawer => {
-      let touchStartY = 0;
-      let touchDeltaY = 0;
+      const scrollable = drawer.querySelector('.drawer-scrollable');
+      let startY = 0;
+      let currentDeltaY = 0;
+      let isDragging = false;
 
       drawer.addEventListener('touchstart', (e) => {
-        touchStartY = e.touches[0].clientY;
-        touchDeltaY = 0;
+        const isScrollAtTop = !scrollable || scrollable.scrollTop <= 0;
+        const touchedHeader = e.target.closest('.drawer-handle, .drawer-top-row');
+        if (touchedHeader || isScrollAtTop) {
+          startY = e.touches[0].clientY;
+          currentDeltaY = 0;
+          isDragging = true;
+        }
       }, { passive: true });
 
       drawer.addEventListener('touchmove', (e) => {
-        const currentY = e.touches[0].clientY;
-        touchDeltaY = currentY - touchStartY;
-      }, { passive: true });
+        if (!isDragging) return;
+        const y = e.touches[0].clientY;
+        const deltaY = y - startY;
 
-      drawer.addEventListener('touchend', () => {
-        // If swiped down by more than 50px near the top of the sheet
-        if (touchDeltaY > 55) {
-          closeAllDrawers();
+        if (deltaY > 0) {
+          // If inner list is scrolled down, let it scroll back to top first
+          if (scrollable && scrollable.scrollTop > 0) return;
+          currentDeltaY = deltaY;
+          // CRITICAL: Prevent default to completely block background reader scrolling!
+          e.preventDefault();
+          drawer.style.transition = 'none';
+          drawer.style.transform = `translateY(${deltaY}px)`;
+        } else {
+          currentDeltaY = 0;
         }
-      });
+      }, { passive: false });
+
+      const handleEnd = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        drawer.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
+        if (currentDeltaY > 70) {
+          closeAllDrawers();
+        } else {
+          drawer.style.transform = '';
+        }
+        currentDeltaY = 0;
+      };
+
+      drawer.addEventListener('touchend', handleEnd, { passive: true });
+      drawer.addEventListener('touchcancel', handleEnd, { passive: true });
     });
 
     // 2. Horizontal swipe on reading canvas for Chapter Navigation
