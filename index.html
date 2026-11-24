@@ -135,7 +135,7 @@
       right: 0;
       background: var(--bg);
       border-bottom: 1px solid var(--border);
-      padding: max(10px, env(safe-area-inset-top)) 18px 10px 18px;
+      padding: max(10px, env(safe-area-inset-top)) 16px 10px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -153,7 +153,7 @@
     .hud-title-wrap {
       display: flex;
       flex-direction: column;
-      max-width: 78%;
+      max-width: 68%;
       cursor: pointer;
     }
     .hud-book-name {
@@ -172,25 +172,54 @@
     }
     .hud-chapter-name {
       font-family: var(--font-sans);
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: 600;
       color: var(--text-main);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
+    .hud-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .hud-icon-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.18s ease;
+    }
+    .hud-icon-btn:active {
+      transform: scale(0.94);
+    }
+    .hud-icon-btn.active {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .hud-icon-btn.active svg {
+      fill: currentColor;
+    }
     .hud-progress-pill {
       font-family: var(--font-sans);
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 12px;
+      padding: 5px 9px;
+      border-radius: 8px;
       background: var(--bg-surface);
       border: 1px solid var(--border);
       color: var(--text-muted);
     }
 
-    /* MINIMAL BOTTOM HUD (4 CLEAN BALANCED BUTTONS) */
+    /* MINIMAL BOTTOM HUD (5 CLEAN MOBILE TABS) */
     .hud-footer {
       position: fixed;
       bottom: 0;
@@ -198,7 +227,7 @@
       right: 0;
       background: var(--bg);
       border-top: 1px solid var(--border);
-      padding: 10px 14px max(14px, env(safe-area-inset-bottom)) 14px;
+      padding: 7px 6px max(11px, env(safe-area-inset-bottom)) 6px;
       display: flex;
       justify-content: space-around;
       align-items: center;
@@ -216,32 +245,36 @@
     .nav-btn {
       background: transparent;
       border: none;
-      color: var(--text-main);
-      padding: 6px 10px;
-      font-size: 12.5px;
+      color: var(--text-muted);
+      padding: 4px 6px;
+      font-size: 10.5px;
       font-family: var(--font-sans);
-      font-weight: 500;
+      font-weight: 600;
       cursor: pointer;
-      display: inline-flex;
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 6px;
+      gap: 3px;
       border-radius: 8px;
-      transition: background 0.15s ease;
+      transition: color 0.15s ease, background 0.15s ease;
+      flex: 1;
+      max-width: 72px;
     }
-    .nav-btn:active {
-      background: var(--bg-surface);
+    .nav-btn:active, .nav-btn.active {
+      color: var(--accent);
+      background: var(--accent-soft);
     }
 
     /* DOCKED BOTTOM SELECTION BAR (Fixes mobile native menu collision) */
     #selection-bar {
       position: fixed;
       bottom: calc(56px + max(12px, env(safe-area-inset-bottom)));
-      left: 14px;
-      right: 14px;
+      left: 12px;
+      right: 12px;
       background: var(--bg-surface);
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 9px 14px;
+      padding: 8px 12px;
       box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
       display: none;
       align-items: center;
@@ -258,32 +291,32 @@
     }
     .sel-snippet {
       font-family: var(--font-sans);
-      font-size: 12px;
+      font-size: 11.5px;
       color: var(--text-muted);
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;
-      max-width: 45%;
+      max-width: 32%;
       font-style: italic;
     }
     .sel-actions {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
     .sel-btn {
       background: var(--bg);
       border: 1px solid var(--border);
       color: var(--text-main);
       font-family: var(--font-sans);
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 600;
-      padding: 6px 12px;
+      padding: 6px 10px;
       border-radius: 8px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
     }
     .sel-btn:active {
       background: var(--border);
@@ -439,12 +472,68 @@
       color: var(--text-main);
     }
 
-    /* HIGHLIGHTS IN TEXT */
+    /* HIGHLIGHTS IN TEXT & PULSE ANIMATION */
     mark.user-hl {
       background-color: var(--highlight-color);
       color: inherit;
       border-radius: 3px;
       padding: 1px 2px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    @keyframes highlightPulse {
+      0% { transform: scale(1); background-color: rgba(255, 230, 0, 0.9); }
+      50% { transform: scale(1.02); background-color: rgba(255, 200, 0, 1); }
+      100% { transform: scale(1); background-color: var(--highlight-color); }
+    }
+    .hl-pulse-target {
+      animation: highlightPulse 1.4s ease-in-out;
+      border-radius: 6px;
+    }
+
+    /* IN-TEXT VISUAL BOOKMARK MARKER */
+    .chapter-bookmark-marker {
+      margin: 18px 0;
+      padding: 10px 14px;
+      background: var(--accent-soft);
+      border-left: 3.5px solid var(--accent);
+      border-radius: 0 10px 10px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--text-main);
+      user-select: none;
+    }
+    .bm-flag-label {
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+    .bm-flag-snippet {
+      font-style: italic;
+      color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+    .bm-delete-action {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 2px 6px;
+      font-size: 13px;
+      border-radius: 4px;
+    }
+    .bm-delete-action:active {
+      color: #FF3B30;
     }
 
     /* BOTTOM SHEETS / DRAWERS */
@@ -482,7 +571,7 @@
       display: flex;
       flex-direction: column;
       box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
-      padding: 12px 20px max(24px, env(safe-area-inset-bottom)) 20px;
+      padding: 12px 18px max(24px, env(safe-area-inset-bottom)) 18px;
     }
     .sheet-drawer.active {
       transform: translateY(0);
@@ -616,6 +705,73 @@
       white-space: nowrap;
     }
 
+    /* BOOKMARKS & HIGHLIGHTS MANAGER CARDS */
+    .saved-card {
+      padding: 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 10px;
+      font-family: var(--font-sans);
+      transition: all 0.15s ease;
+    }
+    .saved-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .saved-card-ch {
+      font-size: 11.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--accent);
+    }
+    .saved-card-date {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .saved-card-quote {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: var(--text-main);
+      padding: 8px 12px;
+      background: var(--callout-bg);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 6px 6px 0;
+      margin-bottom: 10px;
+      font-style: italic;
+    }
+    .saved-card-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .saved-jump-btn {
+      background: var(--accent);
+      color: #FFFFFF;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .saved-delete-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      cursor: pointer;
+    }
+    .saved-delete-btn:active {
+      color: #FF3B30;
+      border-color: #FF3B30;
+    }
+
     /* GLOSSARY DRAWER */
     .glossary-search-input {
       width: 100%;
@@ -708,9 +864,9 @@
       background: var(--bg);
       border: none;
       border-right: 1px solid var(--border);
-      padding: 8px 16px;
+      padding: 6px 14px;
       font-family: var(--font-sans);
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 600;
       color: var(--text-main);
       cursor: pointer;
@@ -840,7 +996,12 @@
       <span class="hud-book-name" id="hud-book-name">Thinking, Fast and Slow <span style="font-size:10px; opacity:0.75;">▾</span></span>
       <span class="hud-chapter-name" id="hud-chapter-name">Loading...</span>
     </div>
-    <div class="hud-progress-pill" id="progress-badge">0%</div>
+    <div class="hud-header-actions">
+      <button class="hud-icon-btn" id="btn-toggle-chapter-bookmark" title="Bookmark current chapter position">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" id="header-bm-icon"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+      </button>
+      <div class="hud-progress-pill" id="progress-badge">0%</div>
+    </div>
   </nav>
 
   <!-- Main Reader Canvas -->
@@ -854,11 +1015,12 @@
     <div class="sel-actions">
       <button class="sel-btn sel-btn-primary" id="btn-explain-sel">📖 Explain</button>
       <button class="sel-btn" id="btn-highlight-sel">🟡 Highlight</button>
+      <button class="sel-btn" id="btn-bookmark-sel">🔖 Bookmark</button>
       <button class="sel-btn" id="btn-dismiss-sel" style="padding:6px 8px;">✕</button>
     </div>
   </div>
 
-  <!-- MINIMAL BOTTOM HUD (4 CLEAN BUTTONS) -->
+  <!-- MINIMAL BOTTOM HUD (5 CLEAN MOBILE TABS) -->
   <nav class="hud-footer" id="hud-footer">
     <button class="nav-btn" id="btn-open-library">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
@@ -867,6 +1029,10 @@
     <button class="nav-btn" id="btn-open-chapters">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
       Chapters
+    </button>
+    <button class="nav-btn" id="btn-open-saved">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+      Saved
     </button>
     <button class="nav-btn" id="btn-open-glossary">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
@@ -907,6 +1073,31 @@
       <button class="sel-btn" id="btn-switch-book-from-toc" style="font-size:11px; padding:4px 8px;">Switch Book</button>
     </div>
     <div class="drawer-scrollable" id="chapters-list-container">
+      <!-- Injected via JS -->
+    </div>
+  </div>
+
+  <!-- DRAWER: BOOKMARKS & HIGHLIGHTS MANAGER -->
+  <div class="sheet-drawer" id="drawer-saved">
+    <div class="drawer-handle"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <div>
+        <h3 style="font-family:var(--font-sans); font-size:16px; font-weight:700;">Bookmarks &amp; Highlights</h3>
+        <span style="font-family:var(--font-sans); font-size:11.5px; color:var(--text-muted);" id="saved-summary-stat">0 Bookmarks • 0 Highlights</span>
+      </div>
+      <div class="btn-toggle-group">
+        <button class="toggle-opt active" id="tab-btn-bookmarks">Bookmarks</button>
+        <button class="toggle-opt" id="tab-btn-highlights">Highlights</button>
+      </div>
+    </div>
+    
+    <!-- Tab 1: Bookmarks -->
+    <div class="drawer-scrollable" id="tab-content-bookmarks">
+      <!-- Injected via JS -->
+    </div>
+
+    <!-- Tab 2: Highlights -->
+    <div class="drawer-scrollable" id="tab-content-highlights" style="display:none;">
       <!-- Injected via JS -->
     </div>
   </div>
@@ -1036,6 +1227,7 @@
     const hudChapterName = document.getElementById('hud-chapter-name');
     const progressBar = document.getElementById('progress-bar');
     const progressBadge = document.getElementById('progress-badge');
+    const btnHeaderBm = document.getElementById('btn-toggle-chapter-bookmark');
     const selectionBar = document.getElementById('selection-bar');
     const selSnippet = document.getElementById('sel-snippet');
     const sheetOverlay = document.getElementById('sheet-overlay');
@@ -1048,6 +1240,29 @@
       toast.textContent = msg;
       toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
+    // Storage Helpers for Bookmarks & Highlights
+    function getBookmarks(bookId) {
+      try {
+        return JSON.parse(localStorage.getItem(`bookmarks_${bookId}`) || '{}');
+      } catch (e) {
+        return {};
+      }
+    }
+    function saveBookmarks(bookId, bms) {
+      localStorage.setItem(`bookmarks_${bookId}`, JSON.stringify(bms));
+    }
+
+    function getHighlights(bookId) {
+      try {
+        return JSON.parse(localStorage.getItem(`highlights_${bookId}`) || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+    function saveHighlights(bookId, hls) {
+      localStorage.setItem(`highlights_${bookId}`, JSON.stringify(hls));
     }
 
     // Load initial book
@@ -1084,6 +1299,7 @@
       renderLibraryDrawer();
       renderChaptersDrawer();
       renderGlossaryDrawer();
+      renderSavedDrawer();
     }
 
     // Switch active book
@@ -1104,11 +1320,45 @@
       renderLibraryDrawer();
       renderChaptersDrawer();
       renderGlossaryDrawer();
+      renderSavedDrawer();
       showToast(`Opened ${currentBook.title}`);
     };
 
+    // Apply Highlights to Chapter HTML
+    function applyHighlightsToHtml(rawHtml, chapterHighlights) {
+      if (!chapterHighlights || chapterHighlights.length === 0) return rawHtml;
+      let html = rawHtml;
+      chapterHighlights.forEach(hl => {
+        if (!hl.text) return;
+        const escaped = hl.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Match only outside of HTML tags
+        const regex = new RegExp(`(?![^<]*>)(${escaped})`, 'i');
+        html = html.replace(regex, `<mark class="user-hl" id="${hl.id}" data-hl-id="${hl.id}">$1</mark>`);
+      });
+      return html;
+    }
+
+    // Insert visual bookmark marker into Chapter HTML
+    function insertBookmarkMarker(rawHtml, bm) {
+      if (!bm || !bm.textSnippet) return rawHtml;
+      const snippet = bm.textSnippet.slice(0, 32).trim();
+      const escaped = snippet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(?![^<]*>)(${escaped})`, 'i');
+      const markerHtml = `
+        <div class="chapter-bookmark-marker" id="active-chapter-bm">
+          <span class="bm-flag-label">🔖 Bookmarked Location</span>
+          <span class="bm-flag-snippet">“${bm.textSnippet.slice(0, 45)}...”</span>
+          <button class="bm-delete-action" onclick="deleteCurrentChapterBookmark(event)">✕</button>
+        </div>
+      `;
+      if (regex.test(rawHtml)) {
+        return rawHtml.replace(regex, `${markerHtml}$1`);
+      }
+      return markerHtml + rawHtml;
+    }
+
     // Render single chapter
-    function renderChapter(index, restoreScroll = false) {
+    function renderChapter(index, restoreScroll = false, targetElementId = null) {
       currentChapterIndex = index;
       localStorage.setItem(`${currentBookId}-current-ch`, index);
       const ch = currentBook.chapters[index];
@@ -1126,6 +1376,23 @@
       }
 
       let html = ch.content;
+
+      // 1. Re-apply saved highlights for this chapter
+      const bookHighlights = getHighlights(currentBookId);
+      const chHighlights = bookHighlights.filter(h => h.chapterIndex === index);
+      html = applyHighlightsToHtml(html, chHighlights);
+
+      // 2. Check for chapter bookmark (Max 1 per chapter)
+      const bms = getBookmarks(currentBookId);
+      const chBookmark = bms[index];
+      if (chBookmark) {
+        btnHeaderBm.classList.add('active');
+        btnHeaderBm.title = `Bookmarked in this chapter (${chBookmark.createdAt})`;
+        html = insertBookmarkMarker(html, chBookmark);
+      } else {
+        btnHeaderBm.classList.remove('active');
+        btnHeaderBm.title = "Bookmark current chapter position";
+      }
 
       // Insert section pills after header if present
       if (sectionPillsHtml && html.includes('</header>')) {
@@ -1151,8 +1418,17 @@
 
       readerContent.innerHTML = html;
 
-      // Restore or scroll to top
-      if (restoreScroll) {
+      // Restore or scroll to target
+      if (targetElementId) {
+        setTimeout(() => {
+          const el = document.getElementById(targetElementId);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('hl-pulse-target');
+            setTimeout(() => el.classList.remove('hl-pulse-target'), 2000);
+          }
+        }, 80);
+      } else if (restoreScroll) {
         const savedPos = parseInt(localStorage.getItem(`${currentBookId}-ch-${index}-pos`) || '0', 10);
         window.scrollTo({ top: savedPos, behavior: 'instant' });
       } else {
@@ -1205,13 +1481,13 @@
 
     // Tap content to toggle HUD
     readerContent.addEventListener('click', (e) => {
-      if (e.target.closest('button, a, mark, #selection-bar, .next-chapter-card, input')) return;
+      if (e.target.closest('button, a, mark, #selection-bar, .next-chapter-card, input, .chapter-bookmark-marker')) return;
       hudVisible = !hudVisible;
       hudHeader.classList.toggle('hidden', !hudVisible);
       hudFooter.classList.toggle('hidden', !hudVisible);
     });
 
-    // DOCKED SELECTION BAR (Fixes native copy menu collision)
+    // DOCKED SELECTION BAR (Fixes mobile native menu collision)
     document.addEventListener('selectionchange', () => {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || !sel.toString().trim()) {
@@ -1219,7 +1495,7 @@
         return;
       }
       selectedTextString = sel.toString().trim();
-      selSnippet.textContent = `“${selectedTextString.slice(0, 32)}...”`;
+      selSnippet.textContent = `“${selectedTextString.slice(0, 26)}...”`;
       selectionBar.classList.add('active');
     });
 
@@ -1228,18 +1504,95 @@
       window.getSelection().removeAllRanges();
     });
 
+    // 1. ADD / TOGGLE HIGHLIGHT
     document.getElementById('btn-highlight-sel').addEventListener('click', () => {
+      if (!selectedTextString) return;
+      const hls = getHighlights(currentBookId);
+      const newHl = {
+        id: 'hl_' + Date.now(),
+        bookId: currentBookId,
+        chapterIndex: currentChapterIndex,
+        chapterTitle: currentBook.chapters[currentChapterIndex].title,
+        text: selectedTextString,
+        createdAt: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      };
+      hls.unshift(newHl);
+      saveHighlights(currentBookId, hls);
+
+      // Wrap in mark immediately
       const sel = window.getSelection();
-      if (!sel || sel.rangeCount === 0) return;
-      const range = sel.getRangeAt(0);
-      const mark = document.createElement('mark');
-      mark.className = 'user-hl';
-      mark.appendChild(range.extractContents());
-      range.insertNode(mark);
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        const mark = document.createElement('mark');
+        mark.className = 'user-hl';
+        mark.id = newHl.id;
+        mark.dataset.hlId = newHl.id;
+        mark.appendChild(range.extractContents());
+        range.insertNode(mark);
+        sel.removeAllRanges();
+      }
+
       selectionBar.classList.remove('active');
-      sel.removeAllRanges();
-      showToast('Highlighted');
+      renderSavedDrawer();
+      showToast('Highlight saved');
     });
+
+    // 2. SET BOOKMARK FROM SELECTION (1 per chapter)
+    document.getElementById('btn-bookmark-sel').addEventListener('click', () => {
+      if (!selectedTextString) return;
+      setChapterBookmark(selectedTextString);
+      selectionBar.classList.remove('active');
+      window.getSelection().removeAllRanges();
+    });
+
+    // 3. TOP HEADER BOOKMARK TOGGLE
+    btnHeaderBm.addEventListener('click', () => {
+      const bms = getBookmarks(currentBookId);
+      if (bms[currentChapterIndex]) {
+        // Already bookmarked, delete
+        delete bms[currentChapterIndex];
+        saveBookmarks(currentBookId, bms);
+        btnHeaderBm.classList.remove('active');
+        const marker = document.getElementById('active-chapter-bm');
+        if (marker) marker.remove();
+        renderSavedDrawer();
+        showToast('Bookmark removed');
+      } else {
+        // Find visible text or use default
+        let visibleSnippet = `Chapter ${currentChapterIndex + 1} bookmark`;
+        const firstP = readerContent.querySelector('.book-p');
+        if (firstP) visibleSnippet = firstP.textContent.slice(0, 60).trim();
+        setChapterBookmark(visibleSnippet);
+      }
+    });
+
+    function setChapterBookmark(snippetText) {
+      const bms = getBookmarks(currentBookId);
+      bms[currentChapterIndex] = {
+        chapterIndex: currentChapterIndex,
+        chapterTitle: currentBook.chapters[currentChapterIndex].title,
+        textSnippet: snippetText.slice(0, 80).trim(),
+        scrollY: window.scrollY,
+        createdAt: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      };
+      saveBookmarks(currentBookId, bms);
+      btnHeaderBm.classList.add('active');
+      renderChapter(currentChapterIndex, false, 'active-chapter-bm');
+      renderSavedDrawer();
+      showToast(`Bookmarked in ${currentBook.chapters[currentChapterIndex].title}`);
+    }
+
+    window.deleteCurrentChapterBookmark = function(e) {
+      if (e) e.stopPropagation();
+      const bms = getBookmarks(currentBookId);
+      delete bms[currentChapterIndex];
+      saveBookmarks(currentBookId, bms);
+      btnHeaderBm.classList.remove('active');
+      const marker = document.getElementById('active-chapter-bm');
+      if (marker) marker.remove();
+      renderSavedDrawer();
+      showToast('Bookmark removed');
+    };
 
     // FREE AI & DICTIONARY EXPLAINER
     async function explainSelectedWord(word) {
@@ -1333,6 +1686,141 @@
     document.getElementById('btn-close-ai').addEventListener('click', () => {
       aiModal.classList.remove('active');
       sheetOverlay.classList.remove('active');
+    });
+
+    // Tap highlight in text to view or delete
+    readerContent.addEventListener('click', (e) => {
+      const hlMark = e.target.closest('mark.user-hl');
+      if (hlMark) {
+        const hlId = hlMark.dataset.hlId;
+        if (confirm(`Remove highlight: “${hlMark.textContent.slice(0, 30)}...” ?`)) {
+          deleteHighlight(hlId);
+        }
+      }
+    });
+
+    function deleteHighlight(hlId) {
+      let hls = getHighlights(currentBookId);
+      hls = hls.filter(h => h.id !== hlId);
+      saveHighlights(currentBookId, hls);
+      const mark = document.getElementById(hlId);
+      if (mark) {
+        const textNode = document.createTextNode(mark.textContent);
+        mark.parentNode.replaceChild(textNode, mark);
+      }
+      renderSavedDrawer();
+      showToast('Highlight removed');
+    }
+
+    // SAVED DRAWER (BOOKMARKS & HIGHLIGHTS MANAGER)
+    function renderSavedDrawer() {
+      const bms = getBookmarks(currentBookId);
+      const hls = getHighlights(currentBookId);
+      const bmList = Object.values(bms).sort((a, b) => a.chapterIndex - b.chapterIndex);
+
+      document.getElementById('saved-summary-stat').textContent = `${bmList.length} Bookmarks • ${hls.length} Highlights`;
+
+      // 1. Render Bookmarks Tab
+      const bmContainer = document.getElementById('tab-content-bookmarks');
+      if (bmList.length === 0) {
+        bmContainer.innerHTML = `
+          <div style="text-align:center; padding:35px 20px; color:var(--text-muted);">
+            <p style="font-size:24px; margin-bottom:8px;">🔖</p>
+            <p style="font-weight:600; margin-bottom:4px;">No bookmarks yet</p>
+            <p style="font-size:12.5px;">Select text and tap <b>Bookmark</b>, or tap the <b>🔖</b> icon in the top header while reading.</p>
+          </div>
+        `;
+      } else {
+        let html = '';
+        bmList.forEach(bm => {
+          html += `
+            <div class="saved-card">
+              <div class="saved-card-header">
+                <span class="saved-card-ch">${bm.chapterTitle}</span>
+                <span class="saved-card-date">${bm.createdAt}</span>
+              </div>
+              <div class="saved-card-quote">“${bm.textSnippet}”</div>
+              <div class="saved-card-actions">
+                <button class="saved-jump-btn" onclick="jumpToSavedBookmark(${bm.chapterIndex}, ${bm.scrollY})">Continue Reading →</button>
+                <button class="saved-delete-btn" onclick="deleteSavedBookmark(${bm.chapterIndex})">Remove</button>
+              </div>
+            </div>
+          `;
+        });
+        bmContainer.innerHTML = html;
+      }
+
+      // 2. Render Highlights Tab
+      const hlContainer = document.getElementById('tab-content-highlights');
+      if (hls.length === 0) {
+        hlContainer.innerHTML = `
+          <div style="text-align:center; padding:35px 20px; color:var(--text-muted);">
+            <p style="font-size:24px; margin-bottom:8px;">🟡</p>
+            <p style="font-weight:600; margin-bottom:4px;">No highlights yet</p>
+            <p style="font-size:12.5px;">Select any text while reading and tap <b>Highlight</b> to save your favorite passages here.</p>
+          </div>
+        `;
+      } else {
+        let html = '';
+        hls.forEach(hl => {
+          html += `
+            <div class="saved-card">
+              <div class="saved-card-header">
+                <span class="saved-card-ch">${hl.chapterTitle}</span>
+                <span class="saved-card-date">${hl.createdAt}</span>
+              </div>
+              <div class="saved-card-quote">“${hl.text}”</div>
+              <div class="saved-card-actions">
+                <button class="saved-jump-btn" onclick="jumpToSavedHighlight(${hl.chapterIndex}, '${hl.id}')">View in Chapter →</button>
+                <button class="saved-delete-btn" onclick="deleteHighlight('${hl.id}')">Remove</button>
+              </div>
+            </div>
+          `;
+        });
+        hlContainer.innerHTML = html;
+      }
+    }
+
+    window.jumpToSavedBookmark = function(chIdx, scrollY) {
+      closeAllDrawers();
+      renderChapter(chIdx, false, 'active-chapter-bm');
+    };
+
+    window.deleteSavedBookmark = function(chIdx) {
+      const bms = getBookmarks(currentBookId);
+      delete bms[chIdx];
+      saveBookmarks(currentBookId, bms);
+      if (chIdx === currentChapterIndex) {
+        btnHeaderBm.classList.remove('active');
+        const marker = document.getElementById('active-chapter-bm');
+        if (marker) marker.remove();
+      }
+      renderSavedDrawer();
+      showToast('Bookmark removed');
+    };
+
+    window.jumpToSavedHighlight = function(chIdx, hlId) {
+      closeAllDrawers();
+      renderChapter(chIdx, false, hlId);
+    };
+
+    // Tab Switcher inside Saved Drawer
+    const tabBtnBm = document.getElementById('tab-btn-bookmarks');
+    const tabBtnHl = document.getElementById('tab-btn-highlights');
+    const tabContentBm = document.getElementById('tab-content-bookmarks');
+    const tabContentHl = document.getElementById('tab-content-highlights');
+
+    tabBtnBm.addEventListener('click', () => {
+      tabBtnBm.classList.add('active');
+      tabBtnHl.classList.remove('active');
+      tabContentBm.style.display = 'block';
+      tabContentHl.style.display = 'none';
+    });
+    tabBtnHl.addEventListener('click', () => {
+      tabBtnHl.classList.add('active');
+      tabBtnBm.classList.remove('active');
+      tabContentHl.style.display = 'block';
+      tabContentBm.style.display = 'none';
     });
 
     // LIBRARY DRAWER (MULTI-BOOK SWITCHER)
@@ -1436,6 +1924,7 @@
       closeAllDrawers();
       sheetOverlay.classList.add('active');
       document.getElementById(drawerId).classList.add('active');
+      if (drawerId === 'drawer-saved') renderSavedDrawer();
     }
     function closeAllDrawers() {
       sheetOverlay.classList.remove('active');
@@ -1447,6 +1936,7 @@
     document.getElementById('btn-open-library').addEventListener('click', () => openDrawer('drawer-library'));
     document.getElementById('btn-switch-book-from-toc').addEventListener('click', () => openDrawer('drawer-library'));
     document.getElementById('btn-open-chapters').addEventListener('click', () => openDrawer('drawer-chapters'));
+    document.getElementById('btn-open-saved').addEventListener('click', () => openDrawer('drawer-saved'));
     document.getElementById('btn-open-glossary').addEventListener('click', () => openDrawer('drawer-glossary'));
     document.getElementById('btn-open-appearance').addEventListener('click', () => openDrawer('drawer-appearance'));
     sheetOverlay.addEventListener('click', closeAllDrawers);
