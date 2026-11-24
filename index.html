@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Minimal Vertical Book Reader</title>
+  <title>Minimal Book Reader</title>
   
+  <!-- PWA Meta & Installability -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="theme-color" content="#FAF6EE" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
   
   <style>
     /* TYPOGRAPHIC RESET & EDITORIAL VARIABLES */
@@ -108,6 +111,7 @@
       text-rendering: optimizeLegibility;
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
+      overflow-y: auto; /* Always scrollable, never locked */
     }
 
     /* READING PROGRESS BAR */
@@ -182,23 +186,23 @@
     .hud-header-actions {
       display: flex;
       align-items: center;
-      gap: 7px;
+      gap: 8px;
     }
     .hud-icon-btn {
       background: var(--bg-surface);
       border: 1px solid var(--border);
       color: var(--text-muted);
       cursor: pointer;
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: all 0.18s ease;
     }
     .hud-icon-btn:active {
-      transform: scale(0.94);
+      transform: scale(0.93);
     }
     .hud-icon-btn.active {
       background: var(--accent-soft);
@@ -212,14 +216,14 @@
       font-family: var(--font-sans);
       font-size: 11.5px;
       font-weight: 600;
-      padding: 5px 9px;
-      border-radius: 8px;
+      padding: 6px 10px;
+      border-radius: 9px;
       background: var(--bg-surface);
       border: 1px solid var(--border);
       color: var(--text-muted);
     }
 
-    /* MINIMAL BOTTOM HUD (5 CLEAN MOBILE TABS) */
+    /* ENHANCED BOTTOM TOOLBAR: ICON-ONLY, LARGER TOUCH TARGETS */
     .hud-footer {
       position: fixed;
       bottom: 0;
@@ -227,7 +231,7 @@
       right: 0;
       background: var(--bg);
       border-top: 1px solid var(--border);
-      padding: 7px 6px max(11px, env(safe-area-inset-bottom)) 6px;
+      padding: 11px 16px max(16px, env(safe-area-inset-bottom)) 16px;
       display: flex;
       justify-content: space-around;
       align-items: center;
@@ -246,29 +250,30 @@
       background: transparent;
       border: none;
       color: var(--text-muted);
-      padding: 4px 6px;
-      font-size: 10.5px;
-      font-family: var(--font-sans);
-      font-weight: 600;
+      width: 52px;
+      height: 44px;
+      border-radius: 12px;
       cursor: pointer;
       display: flex;
-      flex-direction: column;
       align-items: center;
-      gap: 3px;
-      border-radius: 8px;
-      transition: color 0.15s ease, background 0.15s ease;
-      flex: 1;
-      max-width: 72px;
+      justify-content: center;
+      transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
     }
-    .nav-btn:active, .nav-btn.active {
+    .nav-btn:active {
+      transform: scale(0.92);
       color: var(--accent);
       background: var(--accent-soft);
     }
+    .nav-btn svg {
+      width: 22px;
+      height: 22px;
+      stroke-width: 2;
+    }
 
-    /* DOCKED BOTTOM SELECTION BAR (Fixes mobile native menu collision) */
+    /* DOCKED BOTTOM SELECTION BAR */
     #selection-bar {
       position: fixed;
-      bottom: calc(56px + max(12px, env(safe-area-inset-bottom)));
+      bottom: calc(62px + max(14px, env(safe-area-inset-bottom)));
       left: 12px;
       right: 12px;
       background: var(--bg-surface);
@@ -309,14 +314,15 @@
       border: 1px solid var(--border);
       color: var(--text-main);
       font-family: var(--font-sans);
-      font-size: 11.5px;
+      font-size: 12px;
       font-weight: 600;
-      padding: 6px 10px;
+      padding: 7px 11px;
       border-radius: 8px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 5px;
+      transition: background 0.15s ease;
     }
     .sel-btn:active {
       background: var(--border);
@@ -326,12 +332,17 @@
       color: #FFFFFF;
       border-color: var(--accent);
     }
+    .sel-btn svg {
+      width: 14px;
+      height: 14px;
+    }
 
     /* EDITORIAL READING CANVAS */
     .reader-container {
       max-width: var(--content-max-width);
       margin: 0 auto;
-      padding: calc(64px + env(safe-area-inset-top)) 20px calc(80px + env(safe-area-inset-bottom)) 20px;
+      padding: calc(64px + env(safe-area-inset-top)) 20px calc(86px + env(safe-area-inset-bottom)) 20px;
+      user-select: text;
     }
 
     .chapter-header {
@@ -482,78 +493,53 @@
       transition: background-color 0.3s ease;
     }
     @keyframes highlightPulse {
-      0% { transform: scale(1); background-color: rgba(255, 230, 0, 0.9); }
+      0% { transform: scale(1); background-color: rgba(255, 230, 0, 0.95); }
       50% { transform: scale(1.02); background-color: rgba(255, 200, 0, 1); }
       100% { transform: scale(1); background-color: var(--highlight-color); }
     }
     .hl-pulse-target {
       animation: highlightPulse 1.4s ease-in-out;
-      border-radius: 6px;
-    }
-
-    /* IN-TEXT VISUAL BOOKMARK MARKER */
-    .chapter-bookmark-marker {
-      margin: 18px 0;
-      padding: 10px 14px;
-      background: var(--accent-soft);
-      border-left: 3.5px solid var(--accent);
-      border-radius: 0 10px 10px 0;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      font-family: var(--font-sans);
-      font-size: 12px;
-      color: var(--text-main);
-      user-select: none;
-    }
-    .bm-flag-label {
-      font-weight: 700;
-      color: var(--accent);
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      white-space: nowrap;
-    }
-    .bm-flag-snippet {
-      font-style: italic;
-      color: var(--text-muted);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      flex: 1;
-    }
-    .bm-delete-action {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 2px 6px;
-      font-size: 13px;
       border-radius: 4px;
     }
-    .bm-delete-action:active {
-      color: #FF3B30;
+
+    /* CLEAN INLINE BOOKMARK MARKER (No block banners) */
+    .bm-inline-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      vertical-align: middle;
+      margin-right: 6px;
+      padding: 3px 5px;
+      border-radius: 5px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      cursor: pointer;
+      user-select: none;
+      animation: fadeIn 0.2s ease;
+      line-height: 1;
+    }
+    .bm-inline-tag svg {
+      width: 13px;
+      height: 13px;
+      fill: currentColor;
     }
 
-    /* BOTTOM SHEETS / DRAWERS */
+    /* NON-BLOCKING BOTTOM SHEETS & DRAWERS (Background remains scrollable) */
     .sheet-overlay {
       position: fixed;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background: rgba(0, 0, 0, 0.45);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, 0.28);
       z-index: 150;
       opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.25s ease;
+      pointer-events: none; /* Allows scrolling background page freely */
+      transition: opacity 0.22s ease;
     }
     .sheet-overlay.active {
       opacity: 1;
-      pointer-events: auto;
     }
 
     .sheet-drawer {
@@ -561,27 +547,63 @@
       left: 0;
       right: 0;
       bottom: 0;
-      max-height: 85vh;
+      max-height: 75vh;
       background: var(--bg);
       border-top: 1px solid var(--border);
       border-radius: 20px 20px 0 0;
       z-index: 160;
       transform: translateY(100%);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
       display: flex;
       flex-direction: column;
-      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
-      padding: 12px 18px max(24px, env(safe-area-inset-bottom)) 18px;
+      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.18);
+      padding: 10px 18px max(24px, env(safe-area-inset-bottom)) 18px;
+      touch-action: pan-y;
     }
     .sheet-drawer.active {
       transform: translateY(0);
     }
     .drawer-handle {
-      width: 38px;
-      height: 4px;
-      border-radius: 2px;
+      width: 40px;
+      height: 5px;
+      border-radius: 3px;
       background: var(--border);
-      margin: 0 auto 14px auto;
+      margin: 0 auto 12px auto;
+      cursor: grab;
+    }
+    .drawer-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .drawer-title {
+      font-family: var(--font-sans);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .drawer-subtitle {
+      font-family: var(--font-sans);
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+    .drawer-close-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .drawer-close-btn svg {
+      width: 14px;
+      height: 14px;
     }
     .drawer-scrollable {
       overflow-y: auto;
@@ -707,7 +729,7 @@
 
     /* BOOKMARKS & HIGHLIGHTS MANAGER CARDS */
     .saved-card {
-      padding: 14px;
+      padding: 13px 14px;
       background: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 12px;
@@ -727,6 +749,9 @@
       text-transform: uppercase;
       letter-spacing: 0.04em;
       color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
     .saved-card-date {
       font-size: 11px;
@@ -757,19 +782,29 @@
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
     }
     .saved-delete-btn {
       background: transparent;
       border: 1px solid var(--border);
       color: var(--text-muted);
-      padding: 5px 10px;
+      padding: 5px 9px;
       border-radius: 8px;
       font-size: 11.5px;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
     .saved-delete-btn:active {
       color: #FF3B30;
       border-color: #FF3B30;
+    }
+    .saved-delete-btn svg, .saved-jump-btn svg {
+      width: 13px;
+      height: 13px;
     }
 
     /* GLOSSARY DRAWER */
@@ -946,9 +981,12 @@
       background: transparent;
       border: none;
       color: var(--text-muted);
-      font-size: 18px;
+      font-size: 16px;
       cursor: pointer;
       padding: 4px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .ai-modal-body {
       padding: 16px 18px;
@@ -961,7 +999,7 @@
     /* TOAST */
     #toast {
       position: fixed;
-      bottom: calc(75px + env(safe-area-inset-bottom));
+      bottom: calc(80px + env(safe-area-inset-bottom));
       left: 50%;
       transform: translateX(-50%) translateY(20px);
       background: var(--text-main);
@@ -975,7 +1013,7 @@
       opacity: 0;
       transition: all 0.22s ease;
       z-index: 300;
-      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     }
     #toast.show {
       opacity: 1;
@@ -993,7 +1031,10 @@
   <!-- Ambient Top HUD -->
   <nav class="hud-header" id="hud-header">
     <div class="hud-title-wrap" id="hud-title-trigger" title="Tap to switch book">
-      <span class="hud-book-name" id="hud-book-name">Thinking, Fast and Slow <span style="font-size:10px; opacity:0.75;">▾</span></span>
+      <span class="hud-book-name" id="hud-book-name">
+        <span>Thinking, Fast and Slow</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+      </span>
       <span class="hud-chapter-name" id="hud-chapter-name">Loading...</span>
     </div>
     <div class="hud-header-actions">
@@ -1013,49 +1054,62 @@
   <div id="selection-bar">
     <span class="sel-snippet" id="sel-snippet">"selected text"</span>
     <div class="sel-actions">
-      <button class="sel-btn sel-btn-primary" id="btn-explain-sel">📖 Explain</button>
-      <button class="sel-btn" id="btn-highlight-sel">🟡 Highlight</button>
-      <button class="sel-btn" id="btn-bookmark-sel">🔖 Bookmark</button>
-      <button class="sel-btn" id="btn-dismiss-sel" style="padding:6px 8px;">✕</button>
+      <button class="sel-btn sel-btn-primary" id="btn-explain-sel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        Explain
+      </button>
+      <button class="sel-btn" id="btn-highlight-sel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        Highlight
+      </button>
+      <button class="sel-btn" id="btn-bookmark-sel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+        Bookmark
+      </button>
+      <button class="sel-btn" id="btn-dismiss-sel" style="padding:7px 9px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
     </div>
   </div>
 
-  <!-- MINIMAL BOTTOM HUD (5 CLEAN MOBILE TABS) -->
+  <!-- ENHANCED BOTTOM TOOLBAR: ICON-ONLY, LARGER TOUCH TARGETS -->
   <nav class="hud-footer" id="hud-footer">
-    <button class="nav-btn" id="btn-open-library">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
-      Books
+    <!-- Books / Library -->
+    <button class="nav-btn" id="btn-open-library" title="Library">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
     </button>
-    <button class="nav-btn" id="btn-open-chapters">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
-      Chapters
+    <!-- Table of Contents / Chapters -->
+    <button class="nav-btn" id="btn-open-chapters" title="Chapters">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
     </button>
-    <button class="nav-btn" id="btn-open-saved">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
-      Saved
+    <!-- Saved / Bookmarks & Highlights -->
+    <button class="nav-btn" id="btn-open-saved" title="Bookmarks &amp; Highlights">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
     </button>
-    <button class="nav-btn" id="btn-open-glossary">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/></svg>
-      Glossary
+    <!-- Glossary / Concepts -->
+    <button class="nav-btn" id="btn-open-glossary" title="Concept Glossary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
     </button>
-    <button class="nav-btn" id="btn-open-appearance">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M9 4v3h5v12h3V7h5V4H9zm-6 8h3v7h3v-7h3v-3H3v3z"/></svg>
-      Settings
+    <!-- Appearance / Settings -->
+    <button class="nav-btn" id="btn-open-appearance" title="Appearance Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
     </button>
   </nav>
 
-  <!-- MODAL DRAWER OVERLAY -->
+  <!-- NON-BLOCKING OVERLAY (Page behind remains scrollable) -->
   <div class="sheet-overlay" id="sheet-overlay"></div>
 
-  <!-- DRAWER: LIBRARY (MULTI-BOOK SWITCHER) -->
+  <!-- DRAWER: LIBRARY -->
   <div class="sheet-drawer" id="drawer-library">
-    <div class="drawer-handle"></div>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+    <div class="drawer-handle" id="handle-library"></div>
+    <div class="drawer-top-row">
       <div>
-        <h3 style="font-family:var(--font-sans); font-size:16.5px; font-weight:700;">My Library</h3>
-        <p style="font-family:var(--font-sans); font-size:12px; color:var(--text-muted); margin-top:2px;">Tap any book to read</p>
+        <div class="drawer-title">My Library</div>
+        <div class="drawer-subtitle">Select a book to continue reading</div>
       </div>
-      <span class="hud-progress-pill" id="library-total-stat" style="font-size:11px;">3 Books</span>
+      <button class="drawer-close-btn" onclick="closeAllDrawers()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
     </div>
     <div class="drawer-scrollable" id="library-books-container">
       <!-- Injected via JS -->
@@ -1064,13 +1118,18 @@
 
   <!-- DRAWER: CHAPTERS -->
   <div class="sheet-drawer" id="drawer-chapters">
-    <div class="drawer-handle"></div>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <div class="drawer-handle" id="handle-chapters"></div>
+    <div class="drawer-top-row">
       <div>
-        <h3 style="font-family:var(--font-sans); font-size:16px; font-weight:700;">Table of Contents</h3>
-        <span style="font-family:var(--font-sans); font-size:12px; color:var(--text-muted);" id="toc-book-title">Thinking, Fast and Slow</span>
+        <div class="drawer-title">Table of Contents</div>
+        <div class="drawer-subtitle" id="toc-book-title">Thinking, Fast and Slow</div>
       </div>
-      <button class="sel-btn" id="btn-switch-book-from-toc" style="font-size:11px; padding:4px 8px;">Switch Book</button>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button class="sel-btn" id="btn-switch-book-from-toc" style="font-size:11.5px; padding:5px 9px;">Switch Book</button>
+        <button class="drawer-close-btn" onclick="closeAllDrawers()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
     </div>
     <div class="drawer-scrollable" id="chapters-list-container">
       <!-- Injected via JS -->
@@ -1079,15 +1138,20 @@
 
   <!-- DRAWER: BOOKMARKS & HIGHLIGHTS MANAGER -->
   <div class="sheet-drawer" id="drawer-saved">
-    <div class="drawer-handle"></div>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <div class="drawer-handle" id="handle-saved"></div>
+    <div class="drawer-top-row">
       <div>
-        <h3 style="font-family:var(--font-sans); font-size:16px; font-weight:700;">Bookmarks &amp; Highlights</h3>
-        <span style="font-family:var(--font-sans); font-size:11.5px; color:var(--text-muted);" id="saved-summary-stat">0 Bookmarks • 0 Highlights</span>
+        <div class="drawer-title">Bookmarks &amp; Highlights</div>
+        <div class="drawer-subtitle" id="saved-summary-stat">0 Bookmarks • 0 Highlights</div>
       </div>
-      <div class="btn-toggle-group">
-        <button class="toggle-opt active" id="tab-btn-bookmarks">Bookmarks</button>
-        <button class="toggle-opt" id="tab-btn-highlights">Highlights</button>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div class="btn-toggle-group">
+          <button class="toggle-opt active" id="tab-btn-bookmarks">Bookmarks</button>
+          <button class="toggle-opt" id="tab-btn-highlights">Highlights</button>
+        </div>
+        <button class="drawer-close-btn" onclick="closeAllDrawers()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
     </div>
     
@@ -1104,12 +1168,17 @@
 
   <!-- DRAWER: GLOSSARY -->
   <div class="sheet-drawer" id="drawer-glossary">
-    <div class="drawer-handle"></div>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-      <h3 style="font-family:var(--font-sans); font-size:16px; font-weight:700;">Key Concept Glossary</h3>
-      <span class="hud-progress-pill" style="font-size:11px;">Offline</span>
+    <div class="drawer-handle" id="handle-glossary"></div>
+    <div class="drawer-top-row">
+      <div>
+        <div class="drawer-title">Key Concepts</div>
+        <div class="drawer-subtitle">Offline Reference</div>
+      </div>
+      <button class="drawer-close-btn" onclick="closeAllDrawers()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
     </div>
-    <input type="text" class="glossary-search-input" id="glossary-search" placeholder="Search concepts (WYSIATI, heuristics, logotherapy, now...)" />
+    <input type="text" class="glossary-search-input" id="glossary-search" placeholder="Search concepts (WYSIATI, heuristics, logotherapy...)" />
     <div class="drawer-scrollable" id="glossary-items-container">
       <!-- Injected via JS -->
     </div>
@@ -1117,8 +1186,13 @@
 
   <!-- DRAWER: APPEARANCE -->
   <div class="sheet-drawer" id="drawer-appearance">
-    <div class="drawer-handle"></div>
-    <h3 style="font-family:var(--font-sans); font-size:16px; font-weight:700; margin-bottom:18px;">Reading Appearance</h3>
+    <div class="drawer-handle" id="handle-appearance"></div>
+    <div class="drawer-top-row">
+      <div class="drawer-title">Reading Appearance</div>
+      <button class="drawer-close-btn" onclick="closeAllDrawers()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
     
     <div class="pref-row">
       <span class="pref-label">Color Theme</span>
@@ -1152,10 +1226,12 @@
   <div id="ai-modal">
     <div class="ai-modal-header">
       <span class="ai-modal-word" id="ai-word-title">Term</span>
-      <button class="ai-close-btn" id="btn-close-ai">✕</button>
+      <button class="ai-close-btn" id="btn-close-ai">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
     </div>
     <div class="ai-modal-body" id="ai-modal-body">
-      <p style="color:var(--text-muted);">Fetching definition and AI context...</p>
+      <p style="color:var(--text-muted);">Fetching definition and context...</p>
     </div>
   </div>
 
@@ -1166,7 +1242,14 @@
   <script src="book_data.js"></script>
 
   <script>
-    // COMPREHENSIVE OFFLINE GLOSSARY FOR ALL BOOKS
+    // Register PWA Service Worker for Offline & Installability
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(e => console.log('SW registration error:', e));
+      });
+    }
+
+    // COMPREHENSIVE OFFLINE GLOSSARY (No emojis)
     const GLOSSARY_TERMS = {
       // Kahneman - Thinking, Fast and Slow
       "System 1": { book: "Thinking Fast and Slow", def: "Operates automatically and quickly, with little or no effort and no voluntary control. Handles intuition, impulses, instant reactions, and impressions." },
@@ -1283,7 +1366,7 @@
         currentBookId = currentBook.id || 'book';
       }
 
-      hudBookName.innerHTML = `${currentBook.title} <span style="font-size:10px; opacity:0.75;">▾</span>`;
+      hudBookName.innerHTML = `<span>${currentBook.title}</span><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>`;
       document.getElementById('toc-book-title').textContent = currentBook.title;
 
       // Restore preferences
@@ -1309,7 +1392,7 @@
       localStorage.setItem('last-active-book-id', bookId);
       currentBook = window.LIBRARY_BOOKS[bookId];
 
-      hudBookName.innerHTML = `${currentBook.title} <span style="font-size:10px; opacity:0.75;">▾</span>`;
+      hudBookName.innerHTML = `<span>${currentBook.title}</span><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>`;
       document.getElementById('toc-book-title').textContent = currentBook.title;
 
       const savedCh = parseInt(localStorage.getItem(`${currentBookId}-current-ch`) || '0', 10);
@@ -1331,30 +1414,23 @@
       chapterHighlights.forEach(hl => {
         if (!hl.text) return;
         const escaped = hl.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        // Match only outside of HTML tags
         const regex = new RegExp(`(?![^<]*>)(${escaped})`, 'i');
         html = html.replace(regex, `<mark class="user-hl" id="${hl.id}" data-hl-id="${hl.id}">$1</mark>`);
       });
       return html;
     }
 
-    // Insert visual bookmark marker into Chapter HTML
-    function insertBookmarkMarker(rawHtml, bm) {
+    // Insert inline bookmark marker right before selected text
+    function insertInlineBookmarkMarker(rawHtml, bm) {
       if (!bm || !bm.textSnippet) return rawHtml;
-      const snippet = bm.textSnippet.slice(0, 32).trim();
+      const snippet = bm.textSnippet.slice(0, 30).trim();
       const escaped = snippet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(`(?![^<]*>)(${escaped})`, 'i');
-      const markerHtml = `
-        <div class="chapter-bookmark-marker" id="active-chapter-bm">
-          <span class="bm-flag-label">🔖 Bookmarked Location</span>
-          <span class="bm-flag-snippet">“${bm.textSnippet.slice(0, 45)}...”</span>
-          <button class="bm-delete-action" onclick="deleteCurrentChapterBookmark(event)">✕</button>
-        </div>
-      `;
+      const inlineTag = `<span class="bm-inline-tag" id="active-chapter-bm" title="Bookmarked position"><svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></span>`;
       if (regex.test(rawHtml)) {
-        return rawHtml.replace(regex, `${markerHtml}$1`);
+        return rawHtml.replace(regex, `${inlineTag}$1`);
       }
-      return markerHtml + rawHtml;
+      return inlineTag + rawHtml;
     }
 
     // Render single chapter
@@ -1388,7 +1464,7 @@
       if (chBookmark) {
         btnHeaderBm.classList.add('active');
         btnHeaderBm.title = `Bookmarked in this chapter (${chBookmark.createdAt})`;
-        html = insertBookmarkMarker(html, chBookmark);
+        html = insertInlineBookmarkMarker(html, chBookmark);
       } else {
         btnHeaderBm.classList.remove('active');
         btnHeaderBm.title = "Bookmark current chapter position";
@@ -1442,6 +1518,13 @@
     window.goToNextChapter = function() {
       if (currentChapterIndex < currentBook.chapters.length - 1) {
         renderChapter(currentChapterIndex + 1);
+        showToast(`Chapter ${currentChapterIndex + 1}`);
+      }
+    };
+    window.goToPrevChapter = function() {
+      if (currentChapterIndex > 0) {
+        renderChapter(currentChapterIndex - 1);
+        showToast(`Chapter ${currentChapterIndex + 1}`);
       }
     };
 
@@ -1481,13 +1564,13 @@
 
     // Tap content to toggle HUD
     readerContent.addEventListener('click', (e) => {
-      if (e.target.closest('button, a, mark, #selection-bar, .next-chapter-card, input, .chapter-bookmark-marker')) return;
+      if (e.target.closest('button, a, mark, #selection-bar, .next-chapter-card, input, .bm-inline-tag')) return;
       hudVisible = !hudVisible;
       hudHeader.classList.toggle('hidden', !hudVisible);
       hudFooter.classList.toggle('hidden', !hudVisible);
     });
 
-    // DOCKED SELECTION BAR (Fixes mobile native menu collision)
+    // DOCKED SELECTION BAR
     document.addEventListener('selectionchange', () => {
       const sel = window.getSelection();
       if (!sel || sel.isCollapsed || !sel.toString().trim()) {
@@ -1519,7 +1602,6 @@
       hls.unshift(newHl);
       saveHighlights(currentBookId, hls);
 
-      // Wrap in mark immediately
       const sel = window.getSelection();
       if (sel && sel.rangeCount > 0) {
         const range = sel.getRangeAt(0);
@@ -1549,7 +1631,6 @@
     btnHeaderBm.addEventListener('click', () => {
       const bms = getBookmarks(currentBookId);
       if (bms[currentChapterIndex]) {
-        // Already bookmarked, delete
         delete bms[currentChapterIndex];
         saveBookmarks(currentBookId, bms);
         btnHeaderBm.classList.remove('active');
@@ -1558,7 +1639,6 @@
         renderSavedDrawer();
         showToast('Bookmark removed');
       } else {
-        // Find visible text or use default
         let visibleSnippet = `Chapter ${currentChapterIndex + 1} bookmark`;
         const firstP = readerContent.querySelector('.book-p');
         if (firstP) visibleSnippet = firstP.textContent.slice(0, 60).trim();
@@ -1571,7 +1651,7 @@
       bms[currentChapterIndex] = {
         chapterIndex: currentChapterIndex,
         chapterTitle: currentBook.chapters[currentChapterIndex].title,
-        textSnippet: snippetText.slice(0, 80).trim(),
+        textSnippet: snippetText.slice(0, 70).trim(),
         scrollY: window.scrollY,
         createdAt: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
       };
@@ -1582,31 +1662,18 @@
       showToast(`Bookmarked in ${currentBook.chapters[currentChapterIndex].title}`);
     }
 
-    window.deleteCurrentChapterBookmark = function(e) {
-      if (e) e.stopPropagation();
-      const bms = getBookmarks(currentBookId);
-      delete bms[currentChapterIndex];
-      saveBookmarks(currentBookId, bms);
-      btnHeaderBm.classList.remove('active');
-      const marker = document.getElementById('active-chapter-bm');
-      if (marker) marker.remove();
-      renderSavedDrawer();
-      showToast('Bookmark removed');
-    };
-
-    // FREE AI & DICTIONARY EXPLAINER
+    // AI & DICTIONARY EXPLAINER
     async function explainSelectedWord(word) {
       aiWordTitle.textContent = word;
       aiModal.classList.add('active');
       sheetOverlay.classList.add('active');
       aiModalBody.innerHTML = `
         <div style="text-align:center; padding: 20px 0;">
-          <p style="margin-bottom:6px; font-weight:600;">✨ Consulting AI & Dictionary...</p>
-          <p style="font-size:12px; color:var(--text-muted);">Zero-setup contextual lookup for "${word}"</p>
+          <p style="margin-bottom:6px; font-weight:600;">Consulting Definition &amp; Context...</p>
+          <p style="font-size:12px; color:var(--text-muted);">Lookup for "${word}"</p>
         </div>
       `;
 
-      // 1. Offline Glossary lookup
       const lower = word.toLowerCase();
       const localKey = Object.keys(GLOSSARY_TERMS).find(k => k.toLowerCase() === lower || lower.includes(k.toLowerCase()));
       let localHtml = '';
@@ -1620,7 +1687,6 @@
         `;
       }
 
-      // 2. Public Free AI & Free Dictionary lookup
       let aiResult = null;
       let dictResult = null;
 
@@ -1642,7 +1708,7 @@
       if (aiResult) {
         contentHtml += `
           <div style="background:var(--card-bg); border:1px solid var(--border); padding:12px 14px; border-radius:10px; margin-bottom:12px;">
-            <div style="font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; margin-bottom:4px;">🤖 AI Context Explainer</div>
+            <div style="font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; margin-bottom:4px;">Concept Context</div>
             <p style="font-size:13.5px; line-height:1.5;">${aiResult}</p>
           </div>
         `;
@@ -1653,7 +1719,7 @@
         const phonetic = entry.phonetic || (entry.phonetics && entry.phonetics[0] ? entry.phonetics[0].text : '');
         contentHtml += `
           <div style="border-top:1px solid var(--border); padding-top:10px; margin-top:8px;">
-            <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">English Dictionary</div>
+            <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Dictionary</div>
             ${phonetic ? `<div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">${phonetic}</div>` : ''}
         `;
         (entry.meanings || []).slice(0, 2).forEach(m => {
@@ -1671,7 +1737,7 @@
         contentHtml = `
           <div style="text-align:center; padding:15px; color:var(--text-muted);">
             <p>Offline / No network connection.</p>
-            <p style="font-size:12px; margin-top:6px;">Check the built-in Glossary in the bottom bar for key concepts!</p>
+            <p style="font-size:12px; margin-top:6px;">Check the built-in Glossary for key book concepts.</p>
           </div>
         `;
       }
@@ -1725,9 +1791,8 @@
       if (bmList.length === 0) {
         bmContainer.innerHTML = `
           <div style="text-align:center; padding:35px 20px; color:var(--text-muted);">
-            <p style="font-size:24px; margin-bottom:8px;">🔖</p>
             <p style="font-weight:600; margin-bottom:4px;">No bookmarks yet</p>
-            <p style="font-size:12.5px;">Select text and tap <b>Bookmark</b>, or tap the <b>🔖</b> icon in the top header while reading.</p>
+            <p style="font-size:12.5px;">Select text and tap <b>Bookmark</b>, or tap the bookmark icon in the top header while reading.</p>
           </div>
         `;
       } else {
@@ -1736,13 +1801,21 @@
           html += `
             <div class="saved-card">
               <div class="saved-card-header">
-                <span class="saved-card-ch">${bm.chapterTitle}</span>
+                <span class="saved-card-ch">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+                  ${bm.chapterTitle}
+                </span>
                 <span class="saved-card-date">${bm.createdAt}</span>
               </div>
               <div class="saved-card-quote">“${bm.textSnippet}”</div>
               <div class="saved-card-actions">
-                <button class="saved-jump-btn" onclick="jumpToSavedBookmark(${bm.chapterIndex}, ${bm.scrollY})">Continue Reading →</button>
-                <button class="saved-delete-btn" onclick="deleteSavedBookmark(${bm.chapterIndex})">Remove</button>
+                <button class="saved-jump-btn" onclick="jumpToSavedBookmark(${bm.chapterIndex})">
+                  Continue Reading →
+                </button>
+                <button class="saved-delete-btn" onclick="deleteSavedBookmark(${bm.chapterIndex})">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  Remove
+                </button>
               </div>
             </div>
           `;
@@ -1755,9 +1828,8 @@
       if (hls.length === 0) {
         hlContainer.innerHTML = `
           <div style="text-align:center; padding:35px 20px; color:var(--text-muted);">
-            <p style="font-size:24px; margin-bottom:8px;">🟡</p>
             <p style="font-weight:600; margin-bottom:4px;">No highlights yet</p>
-            <p style="font-size:12.5px;">Select any text while reading and tap <b>Highlight</b> to save your favorite passages here.</p>
+            <p style="font-size:12.5px;">Select any text while reading and tap <b>Highlight</b> to collect your passages here.</p>
           </div>
         `;
       } else {
@@ -1771,8 +1843,13 @@
               </div>
               <div class="saved-card-quote">“${hl.text}”</div>
               <div class="saved-card-actions">
-                <button class="saved-jump-btn" onclick="jumpToSavedHighlight(${hl.chapterIndex}, '${hl.id}')">View in Chapter →</button>
-                <button class="saved-delete-btn" onclick="deleteHighlight('${hl.id}')">Remove</button>
+                <button class="saved-jump-btn" onclick="jumpToSavedHighlight(${hl.chapterIndex}, '${hl.id}')">
+                  View in Chapter →
+                </button>
+                <button class="saved-delete-btn" onclick="deleteHighlight('${hl.id}')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  Remove
+                </button>
               </div>
             </div>
           `;
@@ -1781,7 +1858,7 @@
       }
     }
 
-    window.jumpToSavedBookmark = function(chIdx, scrollY) {
+    window.jumpToSavedBookmark = function(chIdx) {
       closeAllDrawers();
       renderChapter(chIdx, false, 'active-chapter-bm');
     };
@@ -1823,7 +1900,7 @@
       tabContentBm.style.display = 'none';
     });
 
-    // LIBRARY DRAWER (MULTI-BOOK SWITCHER)
+    // LIBRARY DRAWER
     function renderLibraryDrawer() {
       const container = document.getElementById('library-books-container');
       if (!window.LIBRARY_BOOKS) {
@@ -1832,8 +1909,6 @@
       }
 
       const books = Object.values(window.LIBRARY_BOOKS);
-      document.getElementById('library-total-stat').textContent = `${books.length} Books`;
-
       let html = '<div class="library-grid">';
       books.forEach(book => {
         const isCur = book.id === currentBookId;
@@ -1919,18 +1994,36 @@
       renderGlossaryDrawer(e.target.value);
     });
 
-    // DRAWER OPEN / CLOSE CONTROLS
+    // DRAWER OPEN / CLOSE WITH HISTORY API (Back button closes drawer!)
     function openDrawer(drawerId) {
-      closeAllDrawers();
+      closeAllDrawers(false);
       sheetOverlay.classList.add('active');
-      document.getElementById(drawerId).classList.add('active');
+      const d = document.getElementById(drawerId);
+      if (d) d.classList.add('active');
       if (drawerId === 'drawer-saved') renderSavedDrawer();
+
+      // Push history state so hardware/browser back button closes drawer
+      history.pushState({ drawerOpen: true, drawerId: drawerId }, '');
     }
-    function closeAllDrawers() {
+
+    function closeAllDrawers(syncHistory = true) {
+      const hadOpen = document.querySelector('.sheet-drawer.active, #ai-modal.active');
       sheetOverlay.classList.remove('active');
       document.querySelectorAll('.sheet-drawer').forEach(d => d.classList.remove('active'));
       aiModal.classList.remove('active');
+
+      if (syncHistory && hadOpen && history.state && history.state.drawerOpen) {
+        history.back();
+      }
     }
+
+    // Hardware / Browser Back Button Event Listener
+    window.addEventListener('popstate', (e) => {
+      const anyOpen = document.querySelector('.sheet-drawer.active, #ai-modal.active');
+      if (anyOpen) {
+        closeAllDrawers(false);
+      }
+    });
 
     document.getElementById('hud-title-trigger').addEventListener('click', () => openDrawer('drawer-library'));
     document.getElementById('btn-open-library').addEventListener('click', () => openDrawer('drawer-library'));
@@ -1939,7 +2032,6 @@
     document.getElementById('btn-open-saved').addEventListener('click', () => openDrawer('drawer-saved'));
     document.getElementById('btn-open-glossary').addEventListener('click', () => openDrawer('drawer-glossary'));
     document.getElementById('btn-open-appearance').addEventListener('click', () => openDrawer('drawer-appearance'));
-    sheetOverlay.addEventListener('click', closeAllDrawers);
 
     // APPEARANCE CONTROLS
     function applyTheme(theme) {
@@ -1948,6 +2040,11 @@
       document.querySelectorAll('.theme-opt-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.theme === theme);
       });
+      // Update meta theme-color for PWA header
+      const metaTheme = document.querySelector('meta[name="theme-color"]');
+      if (metaTheme) {
+        metaTheme.setAttribute('content', theme === 'white' ? '#FFFFFF' : theme === 'slate' ? '#1C1C1E' : theme === 'black' ? '#000000' : '#FAF6EE');
+      }
     }
     document.querySelectorAll('.theme-opt-btn').forEach(btn => {
       btn.addEventListener('click', () => applyTheme(btn.dataset.theme));
@@ -1976,6 +2073,77 @@
       const current = document.documentElement.getAttribute('data-size') || 'md';
       const idx = sizes.indexOf(current);
       if (idx < sizes.length - 1) applySize(sizes[idx + 1]);
+    });
+
+    // -------------------------------------------------------------
+    // INTUITIVE GESTURES & SHORTCUTS
+    // -------------------------------------------------------------
+
+    // 1. Swipe down on bottom sheets to dismiss
+    document.querySelectorAll('.sheet-drawer').forEach(drawer => {
+      let touchStartY = 0;
+      let touchDeltaY = 0;
+
+      drawer.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+        touchDeltaY = 0;
+      }, { passive: true });
+
+      drawer.addEventListener('touchmove', (e) => {
+        const currentY = e.touches[0].clientY;
+        touchDeltaY = currentY - touchStartY;
+      }, { passive: true });
+
+      drawer.addEventListener('touchend', () => {
+        // If swiped down by more than 50px near the top of the sheet
+        if (touchDeltaY > 55) {
+          closeAllDrawers();
+        }
+      });
+    });
+
+    // 2. Horizontal swipe on reading canvas for Chapter Navigation
+    let pageTouchStartX = 0;
+    let pageTouchStartY = 0;
+    readerContent.addEventListener('touchstart', (e) => {
+      pageTouchStartX = e.touches[0].clientX;
+      pageTouchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    readerContent.addEventListener('touchend', (e) => {
+      const deltaX = e.changedTouches[0].clientX - pageTouchStartX;
+      const deltaY = e.changedTouches[0].clientY - pageTouchStartY;
+      // Ensure horizontal swipe is dominant and above threshold
+      if (Math.abs(deltaX) > 85 && Math.abs(deltaX) > Math.abs(deltaY) * 1.8) {
+        if (deltaX < 0) {
+          // Swiped left -> Next Chapter
+          goToNextChapter();
+        } else {
+          // Swiped right -> Previous Chapter
+          goToPrevChapter();
+        }
+      }
+    }, { passive: true });
+
+    // 3. Desktop / Tablet Keyboard Shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      if (e.key === 'ArrowRight' || e.key === 'j') {
+        goToNextChapter();
+      } else if (e.key === 'ArrowLeft' || e.key === 'k') {
+        goToPrevChapter();
+      } else if (e.key === 'b') {
+        btnHeaderBm.click();
+      } else if (e.key === 't') {
+        // Cycle themes
+        const themes = ['paper', 'white', 'slate', 'black'];
+        const curTheme = document.documentElement.getAttribute('data-theme') || 'paper';
+        const nextTheme = themes[(themes.indexOf(curTheme) + 1) % themes.length];
+        applyTheme(nextTheme);
+        showToast(`Theme: ${nextTheme}`);
+      } else if (e.key === 'Escape') {
+        closeAllDrawers();
+      }
     });
 
     // Start
